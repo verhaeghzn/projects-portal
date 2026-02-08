@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Old Domain Redirect (production)
+    |--------------------------------------------------------------------------
+    |
+    | When set, requests to this host are 301-redirected to APP_URL while
+    | preserving path and query string. Set only on production (e.g. when
+    | both old and new domain point to the same app). Example:
+    | REDIRECT_OLD_DOMAIN=cem-projects-dev.multiscale.nl
+    |
+    */
+
+    'redirect_old_domain' => env('REDIRECT_OLD_DOMAIN'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

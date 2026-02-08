@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'saml/acs',
             'saml/sls',
         ]);
+        // Redirect old production domain to APP_URL (path + query preserved)
+        $middleware->prepend(\App\Http\Middleware\RedirectOldDomain::class);
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('avatars:resize')->dailyAt('01:00');
