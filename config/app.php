@@ -60,9 +60,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | When set, requests to this host are 301-redirected to APP_URL while
-    | preserving path and query string. Set only on production (e.g. when
-    | both old and new domain point to the same app). Example:
-    | REDIRECT_OLD_DOMAIN=cem-projects-dev.multiscale.nl
+    | preserving path and query string (subdomain is not retained). Examples:
+    | - Exact host: REDIRECT_OLD_DOMAIN=cem-projects-dev.multiscale.nl
+    | - All subdomains: REDIRECT_OLD_DOMAIN=.multiscale.nl (leading dot)
     |
     */
 

@@ -10,7 +10,11 @@ class RedirectOldDomain
 {
     /**
      * Redirect requests from the old production domain to the new domain (APP_URL),
-     * preserving path and query string. Uses 301 (permanent).
+     * preserving path and query string (subdomain is not retained). Uses 301 (permanent).
+     *
+     * REDIRECT_OLD_DOMAIN can be:
+     * - Exact host: "cem-projects-dev.multiscale.nl" — only that host matches.
+     * - Leading dot (subdomains): ".multiscale.nl" — "multiscale.nl" and any *.multiscale.nl match.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -22,8 +26,14 @@ class RedirectOldDomain
             return $next($request);
         }
 
-        $host = $request->getHost();
-        if (strtolower($host) !== strtolower($oldDomain)) {
+        $host = strtolower($request->getHost());
+        $pattern = strtolower($oldDomain);
+
+        $matches = str_starts_with($pattern, '.')
+            ? ($host === ltrim($pattern, '.') || str_ends_with($host, $pattern))
+            : ($host === $pattern);
+
+        if (! $matches) {
             return $next($request);
         }
 
