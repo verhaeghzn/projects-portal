@@ -24,7 +24,7 @@ class OrganizationForm
                     ->disk('public')
                     ->imageEditor()
                     ->rules([
-                        function ($attribute, $value, \Closure $fail) {
+                        function ($attribute, $value, $fail) {
                             // Skip validation if value is null or empty
                             if (empty($value)) {
                                 return;
