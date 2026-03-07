@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use OneLogin\Saml2\Auth as SamlAuth;
 use OneLogin\Saml2\Settings;
@@ -167,18 +168,22 @@ class SamlController extends Controller
 
     /**
      * Build RelayState string that survives the redirect to IdP and back.
-     * Encodes guard and return URL so we don't depend on session (session is often lost on cross-domain redirect).
+     * Encodes guard, return URL and optional link_token (for "link SURF to current user" flow).
      */
-    protected function buildRelayState(string $guard, string $returnUrl): string
+    protected function buildRelayState(string $guard, string $returnUrl, ?string $linkToken = null): string
     {
-        return base64_encode(json_encode([
+        $payload = [
             'guard' => $guard,
             'return' => $returnUrl,
-        ]));
+        ];
+        if ($linkToken !== null && $linkToken !== '') {
+            $payload['link_token'] = $linkToken;
+        }
+        return base64_encode(json_encode($payload));
     }
 
     /**
-     * Parse RelayState from IdP response. Returns [guard, returnUrl] or null if not our format.
+     * Parse RelayState from IdP response. Returns full payload (guard, return, link_token?) or null.
      */
     protected function parseRelayState(?string $relayState): ?array
     {
@@ -187,9 +192,37 @@ class SamlController extends Controller
         }
         $decoded = @json_decode(base64_decode($relayState, true) ?: '', true);
         if (is_array($decoded) && isset($decoded['guard'], $decoded['return'])) {
-            return [(string) $decoded['guard'], (string) $decoded['return']];
+            return [
+                'guard' => (string) $decoded['guard'],
+                'return' => (string) $decoded['return'],
+                'link_token' => isset($decoded['link_token']) ? (string) $decoded['link_token'] : null,
+            ];
         }
         return null;
+    }
+
+    /**
+     * Start "Link SURF Conext" flow: user is already logged in, we store their id and send them to IdP.
+     * When they return, we set their surf_id and redirect back to admin. Requires auth.
+     */
+    public function link(Request $request)
+    {
+        $this->ensureSamlEnabled();
+
+        if (!Auth::check()) {
+            return redirect('/admin/login')->with('error', 'You must be logged in to link your SURF Conext account.');
+        }
+
+        $token = bin2hex(random_bytes(32));
+        Cache::put('saml_link:' . $token, Auth::id(), 600); // 10 minutes
+
+        $returnUrl = $request->get('return', '/admin');
+
+        return redirect()->route('saml.login', [
+            'guard' => 'web',
+            'return' => $returnUrl,
+            'link_token' => $token,
+        ]);
     }
 
     /**
@@ -206,7 +239,8 @@ class SamlController extends Controller
         session(['saml_return_url' => $returnUrl, 'saml_guard' => $guard]);
 
         // RelayState is sent to IdP and returned in the response – use it so we don't depend on session
-        $relayState = $this->buildRelayState($guard, $returnUrl);
+        $linkToken = $request->get('link_token');
+        $relayState = $this->buildRelayState($guard, $returnUrl, $linkToken ?: null);
 
         try {
             $samlAuth = $this->getSamlAuth($guard);
@@ -235,9 +269,12 @@ class SamlController extends Controller
         // Prefer guard and return URL from RelayState (survives cross-domain redirect); fall back to session
         $relayStateRaw = $request->input('RelayState');
         $parsed = $this->parseRelayState($relayStateRaw);
+        $linkToken = null;
         if ($parsed !== null) {
-            [$guard, $returnUrl] = $parsed;
-            Log::info('SAML ACS: Using guard and return URL from RelayState', ['guard' => $guard, 'returnUrl' => $returnUrl]);
+            $guard = $parsed['guard'];
+            $returnUrl = $parsed['return'];
+            $linkToken = $parsed['link_token'] ?? null;
+            Log::info('SAML ACS: Using guard and return URL from RelayState', ['guard' => $guard, 'returnUrl' => $returnUrl, 'linkMode' => $linkToken !== null]);
         } else {
             $guard = session('saml_guard', 'students');
             $returnUrl = session('saml_return_url', '/');
@@ -360,6 +397,28 @@ class SamlController extends Controller
                 return redirect('/')->with('error', 'Authentication failed: Missing user identifier.');
             }
 
+            // Link mode: connect SURF identity to the already-logged-in user (no email needed)
+            if ($guard === 'web' && $linkToken !== null && $linkToken !== '') {
+                $userId = Cache::get('saml_link:' . $linkToken);
+                if ($userId === null) {
+                    Log::warning('SAML Link: Token not found or expired', ['token_preview' => substr($linkToken, 0, 8) . '...']);
+                    return redirect('/admin/login')->with('error', 'Link session expired. Please try again from the admin panel.');
+                }
+                $user = User::find($userId);
+                if (!$user instanceof User) {
+                    Cache::forget('saml_link:' . $linkToken);
+                    return redirect('/admin/login')->with('error', 'User no longer found. Please log in again.');
+                }
+                $user->surf_id = $persistentId;
+                $user->save();
+                Cache::forget('saml_link:' . $linkToken);
+                Auth::guard('web')->login($user);
+                session()->forget(['saml_return_url', 'saml_guard', 'saml_request_id']);
+                Log::info('SAML Link: Connected SURF identity to user', ['user_id' => $user->id]);
+
+                return redirect($returnUrl ?: '/admin')->with('success', 'SURF Conext account linked successfully. You can sign in with SURF Conext next time.');
+            }
+
             // Handle authentication based on guard
             if ($guard === 'students') {
                 return $this->handleStudentsAuth($persistentId, $eduAffiliation, $email, $returnUrl);
@@ -405,12 +464,13 @@ class SamlController extends Controller
         }
 
         if (!$user) {
+            $linkExplanation = ' If you already have an admin account, log in with your username and password, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account for next time.';
             if (empty($email)) {
                 Log::warning('SAML Admin: No email in response and no user linked to this SURF identity.');
-                return redirect('/admin/login')->with('error', 'SURF Conext did not provide your email. For first-time admin login we need the mail attribute. Please log in with your password once, or ask your administrator to request the mail attribute for this application in SURF Conext.');
+                return redirect('/admin/login')->with('error', 'We don\'t recognise you as an admin user yet. Log in with your username and password first, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account. After that you can sign in with SURF Conext here.');
             }
             Log::warning('SAML Admin: User not found with email: ' . $email);
-            return redirect('/admin/login')->with('error', 'No account found with this email address.');
+            return redirect('/admin/login')->with('error', 'No admin account found with this email address.' . $linkExplanation);
         }
 
         // Check if user has access to admin panel

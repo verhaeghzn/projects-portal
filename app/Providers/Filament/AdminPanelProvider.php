@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Helpers\SamlHelper;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -42,12 +43,18 @@ class AdminPanelProvider extends PanelProvider
                 'User Management',
                 'Settings',
             ])
-            ->userMenuItems([
+            ->userMenuItems(array_filter([
                 'profile' => Action::make('profile')
-                    ->label(fn() => auth()->user()->name)
+                    ->label(fn () => auth()->user()->name)
                     ->url(fn (): string => EditProfilePage::getUrl())
                     ->icon('heroicon-m-user-circle'),
-            ])
+                'link-surf' => SamlHelper::isEnabled() ? Action::make('linkSurf')
+                    ->label('Link SURF Conext')
+                    ->url(route('saml.link'))
+                    ->icon('heroicon-m-arrow-right-on-rectangle')
+                    ->openUrlInNewTab(false)
+                    : null,
+            ]))
             ->plugins([
                 FilamentEditProfilePlugin::make()
                     ->slug('my-profile')

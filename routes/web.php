@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 // SAML routes (ACS and SLS are excluded from CSRF in bootstrap/app.php)
 Route::get('/saml/login', [SamlController::class, 'login'])->name('saml.login');
+Route::get('/saml/link', [SamlController::class, 'link'])->middleware(['web', 'auth'])->name('saml.link');
 Route::post('/saml/acs', [SamlController::class, 'acs'])->name('saml.acs');
 Route::get('/saml/logout', [SamlController::class, 'logout'])->name('saml.logout');
 Route::get('/saml/sls', [SamlController::class, 'sls'])->name('saml.sls');
