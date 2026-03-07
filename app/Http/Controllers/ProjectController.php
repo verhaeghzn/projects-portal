@@ -24,9 +24,35 @@ class ProjectController extends Controller
         $groupId = $request->get('group');
         $supervisorName = null;
 
+        $divisionSlug = $request->route('division');
+        $selectedDivision = null;
+        if ($divisionSlug) {
+            $divisions = config('divisions', []);
+            foreach ($divisions as $d) {
+                if (($d['slug'] ?? '') === $divisionSlug) {
+                    $selectedDivision = $d;
+                    break;
+                }
+            }
+        }
+
         $query = Project::with(['supervisors', 'tags', 'owner', 'organization', 'types'])
             ->available()
             ->where('publication_status', PublicationStatus::Published->value);
+
+        if ($selectedDivision && ! empty($selectedDivision['section_slugs'])) {
+            $divisionSectionSlugs = $selectedDivision['section_slugs'];
+            $query->whereHas('supervisorLinks', function ($q) use ($divisionSectionSlugs) {
+                $q->where('supervisor_type', User::class)
+                    ->whereIn('supervisor_id', function ($subQ) use ($divisionSectionSlugs) {
+                        $subQ->select('users.id')
+                            ->from('users')
+                            ->join('groups', 'users.group_id', '=', 'groups.id')
+                            ->join('sections', 'groups.section_id', '=', 'sections.id')
+                            ->whereIn('sections.slug', $divisionSectionSlugs);
+                    });
+            });
+        }
 
         if ($type) {
             $query->whereHas('types', function ($q) use ($type) {
@@ -101,6 +127,10 @@ class ProjectController extends Controller
         $sections = Section::orderBy('name')
             ->get();
 
+        if ($selectedDivision && ! empty($selectedDivision['section_slugs'])) {
+            $sections = $sections->whereIn('slug', $selectedDivision['section_slugs'])->values();
+        }
+
         $focusTags = Tag::where('category', TagCategory::Focus->value)
             ->orderBy('name')
             ->get();
@@ -143,6 +173,7 @@ class ProjectController extends Controller
             'selectedSupervisor' => $supervisorSlug,
             'selectedSupervisorName' => $supervisorName,
             'selectedGroup' => $groupId,
+            'selectedDivision' => $selectedDivision,
         ]);
     }
 

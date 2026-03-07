@@ -166,6 +166,33 @@ class SamlController extends Controller
     }
 
     /**
+     * Build RelayState string that survives the redirect to IdP and back.
+     * Encodes guard and return URL so we don't depend on session (session is often lost on cross-domain redirect).
+     */
+    protected function buildRelayState(string $guard, string $returnUrl): string
+    {
+        return base64_encode(json_encode([
+            'guard' => $guard,
+            'return' => $returnUrl,
+        ]));
+    }
+
+    /**
+     * Parse RelayState from IdP response. Returns [guard, returnUrl] or null if not our format.
+     */
+    protected function parseRelayState(?string $relayState): ?array
+    {
+        if (empty($relayState)) {
+            return null;
+        }
+        $decoded = @json_decode(base64_decode($relayState, true) ?: '', true);
+        if (is_array($decoded) && isset($decoded['guard'], $decoded['return'])) {
+            return [(string) $decoded['guard'], (string) $decoded['return']];
+        }
+        return null;
+    }
+
+    /**
      * Initiate SAML SSO login
      */
     public function login(Request $request)
@@ -175,13 +202,16 @@ class SamlController extends Controller
         $guard = $request->get('guard', 'students');
         $returnUrl = $request->get('return', '/');
 
-        // Store return URL and guard in session
+        // Store in session as fallback (in case RelayState is not echoed back by IdP)
         session(['saml_return_url' => $returnUrl, 'saml_guard' => $guard]);
+
+        // RelayState is sent to IdP and returned in the response – use it so we don't depend on session
+        $relayState = $this->buildRelayState($guard, $returnUrl);
 
         try {
             $samlAuth = $this->getSamlAuth($guard);
-            $samlAuth->login($returnUrl);
-            
+            $samlAuth->login($relayState);
+
             // Store the request ID for validation in ACS
             $requestId = $samlAuth->getLastRequestID();
             if ($requestId) {
@@ -201,26 +231,32 @@ class SamlController extends Controller
     public function acs(Request $request)
     {
         $this->ensureSamlEnabled();
-        
-        $guard = session('saml_guard', 'students');
-        $returnUrl = session('saml_return_url', '/');
+
+        // Prefer guard and return URL from RelayState (survives cross-domain redirect); fall back to session
+        $relayStateRaw = $request->input('RelayState');
+        $parsed = $this->parseRelayState($relayStateRaw);
+        if ($parsed !== null) {
+            [$guard, $returnUrl] = $parsed;
+            Log::info('SAML ACS: Using guard and return URL from RelayState', ['guard' => $guard, 'returnUrl' => $returnUrl]);
+        } else {
+            $guard = session('saml_guard', 'students');
+            $returnUrl = session('saml_return_url', '/');
+            Log::info('SAML ACS: Using guard and return URL from session (RelayState missing or invalid)', ['guard' => $guard, 'returnUrl' => $returnUrl, 'relayStatePresent' => $relayStateRaw !== null]);
+        }
         $requestId = session('saml_request_id');
 
         try {
             $samlAuth = $this->getSamlAuth($guard);
-            
-            // Log incoming SAML response for debugging
+
             if (config('saml.settings.strict', false) || env('SAML_DEBUG', false)) {
-                Log::debug('SAML ACS: Processing response for guard: ' . $guard);
                 Log::debug('SAML ACS: Request ID from session: ' . ($requestId ?? 'none'));
                 if ($request->has('SAMLResponse')) {
                     Log::debug('SAML ACS: SAMLResponse POST parameter present');
-                    // Log a preview of the response (first 500 chars) for debugging
                     $responsePreview = substr($request->input('SAMLResponse'), 0, 500);
                     Log::debug('SAML ACS: Response preview: ' . $responsePreview . '...');
                 }
             }
-            
+
             $samlAuth->processResponse($requestId);
 
             $errors = $samlAuth->getErrors();

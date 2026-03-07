@@ -4,17 +4,14 @@
                 About the Portal
             </x-slot>
             <x-slot name="description">
-                Information about the CEM Projects Portal
+                Information about the ME Projects Portal
             </x-slot>
             <div class="prose max-w-none">
                 <p class="mb-4">
-                    The Computational and Experimental Mechanics (CEM) Division is one of three core divisions within the Department of Mechanical Engineering at Eindhoven University of Technology. Our division encompasses three research sections that drive innovation in materials science, manufacturing, and microsystems technology.
-                </p>
-                <p class="mb-4">
-                    Through the <strong>Mechanics of Materials (MoM)</strong> section, we explore advanced material behavior and design. The <strong>Processing and Performance (PP)</strong> section focuses on manufacturing processes and material performance optimization. Our <strong>Microsystems (MS)</strong> section pioneers research in microscale systems and technologies.
+                    The Department of Mechanical Engineering at Eindhoven University of Technology is organized into three research divisions: <strong>Thermo-Fluids Engineering (TFE)</strong>, <strong>Computational and Experimental Mechanics (CEM)</strong>, and <strong>Dynamical Systems Design (DSD)</strong>. Each division encompasses research sections that drive innovation across energy technology, materials science, manufacturing, microsystems, control systems, dynamics, and robotics.
                 </p>
                 <p>
-                    This projects portal serves as a central platform to showcase available research opportunities for students, including bachelor thesis projects and master thesis projects. We connect students with cutting-edge research opportunities across advanced manufacturing, energy conversion and storage, and computational engineering, providing world-class projects in both computational and experimental domains.
+                    This projects portal serves as a central platform to showcase available research opportunities for students across the department, including bachelor thesis projects and master thesis projects. Students can browse projects by division or use filters to find projects that match their interests.
                 </p>
             </div>
         </x-filament::section>

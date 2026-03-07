@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Research Projects')
+@section('title', $selectedDivision ? 'Research Projects – ' . $selectedDivision['name'] : 'Research Projects')
 
 @section('content')
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <div class="mb-6 sm:mb-8">
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading text-gray-900 mb-2 sm:mb-4">Research Projects</h1>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-heading text-gray-900 mb-2 sm:mb-4">
+                Research Projects@if ($selectedDivision) – {{ $selectedDivision['name'] }}@endif
+            </h1>
             <p class="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">Explore available research opportunities @if ($selectedSupervisorName)
                     supervised by {{ $selectedSupervisorName }}
                 @endif

@@ -9,7 +9,7 @@
                     <img src="{{ asset('assets/logos/tue_logo.png') }}" alt="TU/e Logo" class="h-6 sm:h-8">
                     <div class="hidden sm:block border-l text-[#16537a] border-gray-300 h-8 pl-4">
                         <div class="flex flex-col">
-                            <span class="text-sm font-bold text-[#16537a] leading-tight">CEM Division</span>
+                            <span class="text-sm font-bold text-[#16537a] leading-tight">ME</span>
                             <span class="text-xs text-[#16537a] leading-tight">Projects Portal</span>
                         </div>
                     </div>
@@ -29,6 +29,12 @@
                     {{-- Dropdown menu --}}
                     <div class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-200">
                         <div class="py-1">
+                            @foreach (config('divisions', []) as $division)
+                                <a href="{{ route('projects.division.' . $division['slug']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                                    {{ $division['name'] }}
+                                </a>
+                            @endforeach
+                            <div class="border-t border-gray-200 my-1"></div>
                             <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
                                 Bachelor Thesis Projects
                             </a>
@@ -66,6 +72,11 @@
         {{-- Mobile menu --}}
         <div id="mobile-menu" class="md:hidden border-t border-gray-200 py-4 hidden">
             <div class="space-y-1">
+                @foreach (config('divisions', []) as $division)
+                    <a href="{{ route('projects.division.' . $division['slug']) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                        {{ $division['name'] }}
+                    </a>
+                @endforeach
                 <a href="{{ route('projects.index') }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
                     All Projects
                 </a>
