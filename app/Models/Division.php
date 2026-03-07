@@ -5,26 +5,18 @@ namespace App\Models;
 use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
-class Section extends Model
+class Division extends Model
 {
     use HasFactory, HasSlug, Cachable;
 
     protected $fillable = [
         'name',
         'slug',
-        'abbrev_id',
-        'division_id',
     ];
-
-    public function division(): BelongsTo
-    {
-        return $this->belongsTo(Division::class);
-    }
 
     public function getSlugOptions(): SlugOptions
     {
@@ -33,8 +25,8 @@ class Section extends Model
             ->saveSlugsTo('slug');
     }
 
-    public function groups(): HasMany
+    public function sections(): HasMany
     {
-        return $this->hasMany(Group::class);
+        return $this->hasMany(Section::class);
     }
 }

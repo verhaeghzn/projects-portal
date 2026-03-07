@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Auth\Guards\StudentsGuard;
 use App\Auth\Providers\StudentsProvider;
+use App\Models\Division;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Opcodes\LogViewer\Facades\LogViewer;
 
@@ -40,5 +43,7 @@ class AppServiceProvider extends ServiceProvider
         LogViewer::auth(function ($request) {
             return Auth::check() && Auth::user()->hasRole('Administrator');
         });
+
+        View::share('divisions', Schema::hasTable('divisions') ? Division::orderBy('name')->get() : collect());
     }
 }

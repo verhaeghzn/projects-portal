@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PublicationStatus;
+use App\Models\Division;
 use App\Models\Group;
 use App\Models\Project;
 use App\Models\ProjectSupervisor;
@@ -27,12 +28,13 @@ class ProjectController extends Controller
         $divisionSlug = $request->route('division');
         $selectedDivision = null;
         if ($divisionSlug) {
-            $divisions = config('divisions', []);
-            foreach ($divisions as $d) {
-                if (($d['slug'] ?? '') === $divisionSlug) {
-                    $selectedDivision = $d;
-                    break;
-                }
+            $division = Division::where('slug', $divisionSlug)->with('sections')->first();
+            if ($division) {
+                $selectedDivision = [
+                    'name' => $division->name,
+                    'slug' => $division->slug,
+                    'section_slugs' => $division->sections->pluck('slug')->all(),
+                ];
             }
         }
 
@@ -124,7 +126,7 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get();
 
-        $sections = Section::orderBy('name')
+        $sections = Section::with('division')->orderBy('name')
             ->get();
 
         if ($selectedDivision && ! empty($selectedDivision['section_slugs'])) {

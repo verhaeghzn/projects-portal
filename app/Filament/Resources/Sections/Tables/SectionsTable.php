@@ -18,6 +18,11 @@ class SectionsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('division.name')
+                    ->label('Division')
+                    ->sortable()
+                    ->placeholder('—'),
+
                 TextColumn::make('groups_count')
                     ->counts('groups')
                     ->label('Groups')

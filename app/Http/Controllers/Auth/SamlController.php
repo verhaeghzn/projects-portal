@@ -387,19 +387,30 @@ class SamlController extends Controller
     }
 
     /**
-     * Handle admin guard authentication (database lookup by email)
+     * Handle admin guard authentication (database lookup by email or surf_id)
      */
     protected function handleAdminAuth(string $persistentId, ?string $email, string $returnUrl)
     {
-        if (empty($email)) {
-            Log::error('SAML Admin: No email found in response');
-            return redirect('/admin/login')->with('error', 'Authentication failed: Email address required for admin access.');
+        $user = null;
+
+        if (!empty($email)) {
+            $user = User::where('email', $email)->first();
+            if ($user && empty($user->surf_id)) {
+                $user->surf_id = $persistentId;
+                $user->save();
+            }
         }
 
-        // Find user by email
-        $user = User::where('email', $email)->first();
+        // No email or no match: try existing link by surf_id (returning user)
+        if (!$user) {
+            $user = User::where('surf_id', $persistentId)->first();
+        }
 
         if (!$user) {
+            if (empty($email)) {
+                Log::warning('SAML Admin: No email in response and no user linked to this SURF identity.');
+                return redirect('/admin/login')->with('error', 'SURF Conext did not provide your email. For first-time admin login we need the mail attribute. Please log in with your password once, or ask your administrator to request the mail attribute for this application in SURF Conext.');
+            }
             Log::warning('SAML Admin: User not found with email: ' . $email);
             return redirect('/admin/login')->with('error', 'No account found with this email address.');
         }
@@ -408,12 +419,6 @@ class SamlController extends Controller
         $panel = \Filament\Facades\Filament::getPanel('admin');
         if ($panel && !$user->canAccessPanel($panel)) {
             return redirect('/admin/login')->with('error', 'You do not have access to the admin panel.');
-        }
-
-        // Store persistent ID if not already stored
-        if (empty($user->surf_id)) {
-            $user->surf_id = $persistentId;
-            $user->save();
         }
 
         // Authenticate user

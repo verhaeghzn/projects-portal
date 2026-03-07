@@ -3,9 +3,6 @@
 @section('title', 'Welcome')
 
 @section('content')
-@php
-    $divisions = config('divisions', []);
-@endphp
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
     <div class="text-center mb-8 sm:mb-12">
         <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading text-gray-900 mb-3 sm:mb-4 px-2">Welcome to the Mechanical Engineering Projects Portal</h1>
@@ -29,10 +26,10 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12 lg:mt-16 items-stretch">
         @foreach ($divisions as $division)
-            <a href="{{ route('projects.division.' . $division['slug']) }}" class="group text-left p-5 sm:p-6 bg-gray-50 rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:bg-gray-100 transition-all duration-200 flex flex-col min-h-0">
-                <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-2 group-hover:text-[#7fabc9] transition-colors">{{ $division['name'] }}</h2>
+            <a href="{{ route('projects.division.' . $division->slug) }}" class="group text-left p-5 sm:p-6 bg-gray-50 rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:bg-gray-100 transition-all duration-200 flex flex-col min-h-0">
+                <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-2 group-hover:text-[#7fabc9] transition-colors">{{ $division->name }}</h2>
                 <p class="text-sm sm:text-base text-gray-600 mb-4 flex-1 leading-relaxed">
-                    @switch($division['slug'])
+                    @switch($division->slug)
                         @case('thermo-fluids-engineering')
                             Energy technology and power & flow research.
                             @break
