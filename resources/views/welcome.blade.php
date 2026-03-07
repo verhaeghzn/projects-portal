@@ -27,11 +27,11 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12 lg:mt-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12 lg:mt-16 items-stretch">
         @foreach ($divisions as $division)
-            <a href="{{ route('projects.division.' . $division['slug']) }}" class="group text-center p-4 sm:p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex flex-col">
+            <a href="{{ route('projects.division.' . $division['slug']) }}" class="group text-left p-5 sm:p-6 bg-gray-50 rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:bg-gray-100 transition-all duration-200 flex flex-col min-h-0">
                 <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-2 group-hover:text-[#7fabc9] transition-colors">{{ $division['name'] }}</h2>
-                <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 flex-1">
+                <p class="text-sm sm:text-base text-gray-600 mb-4 flex-1 leading-relaxed">
                     @switch($division['slug'])
                         @case('thermo-fluids-engineering')
                             Energy technology and power & flow research.
@@ -46,15 +46,17 @@
                             Research projects in this division.
                     @endswitch
                 </p>
-                <span class="text-[#7fabc9] hover:text-[#5a8ba8] font-medium inline-block text-sm sm:text-base">
+                <span class="text-[#7fabc9] group-hover:text-[#5a8ba8] font-medium text-sm sm:text-base">
                     View Projects →
                 </span>
             </a>
         @endforeach
     </div>
 
-    <p class="text-center mt-6 sm:mt-8">
-        <a href="{{ route('projects.index') }}" class="text-sm text-gray-500 hover:text-[#7fabc9] hover:underline">View all projects of ME</a>
+    <p class="text-center mt-8 sm:mt-10">
+        <a href="{{ route('projects.index') }}" class="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-[#7fabc9] hover:text-[#5a8ba8] hover:underline transition-colors">
+            View all projects of ME →
+        </a>
     </p>
 </div>
 @endsection
