@@ -33,7 +33,7 @@
                     </p>
                 </div>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                    The portal is managed by Joris Remmers and Bart Verhaegh.
+                    The portal is managed by Andreas Pollet, Joris Remmers and Bart Verhaegh.
                 </p>
             </div>
         </x-filament::section>

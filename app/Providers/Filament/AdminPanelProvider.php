@@ -50,7 +50,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-m-user-circle'),
                 'link-surf' => SamlHelper::isEnabled() ? Action::make('linkSurf')
                     ->label('Link SURF Conext')
-                    ->url(route('saml.link'))
+                    ->url(fn (): string => route('saml.link'))
                     ->icon('heroicon-m-arrow-right-on-rectangle')
                     ->openUrlInNewTab(false)
                     : null,
