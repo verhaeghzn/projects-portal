@@ -88,17 +88,6 @@
                         @endforeach
                     </select>
                 </div>
-
-                <div class="flex flex-col w-full sm:w-auto">
-                    <label for="with-company-filter" class="text-xs font-medium text-gray-600 mb-1">In cooperation with a
-                        company</label>
-                    <select id="with-company-filter" onchange="updateFilters('with_company', this.value)"
-                        class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm focus:ring-[#7fabc9] focus:border-[#7fabc9] w-full">
-                        <option value="">All</option>
-                        <option value="yes" {{ request('with_company') === 'yes' ? 'selected' : '' }}>Yes</option>
-                        <option value="no" {{ request('with_company') === 'no' ? 'selected' : '' }}>No</option>
-                    </select>
-                </div>
             </div>
 
             <script>
@@ -129,7 +118,6 @@
                     const section = document.getElementById('section-filter').value;
                     const focus = document.getElementById('focus-filter').value;
                     const supervisor = document.getElementById('supervisor-filter')?.value || '';
-                    const withCompany = document.getElementById('with-company-filter').value;
 
                     // Build new params with all current filter values
                     const params = new URLSearchParams();
@@ -138,7 +126,6 @@
                     if (section) params.set('section', section);
                     if (focus) params.set('focus', focus);
                     if (supervisor) params.set('supervisor', supervisor);
-                    if (withCompany) params.set('with_company', withCompany);
 
                     // Navigate with all filters
                     const queryString = params.toString();
@@ -168,11 +155,6 @@
                                 <h2
                                     class="text-base sm:text-lg font-heading text-gray-900 group-hover:text-[#7fabc9] transition-colors flex-1">
                                     {{ $project->name }}</h2>
-                                @if ($project->organization && $project->organization->logo && $project->organization->name !== 'TU/e')
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($project->organization->logo) }}"
-                                        alt="{{ $project->organization->name }}"
-                                        class="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0">
-                                @endif
                             </div>
                             <p class="text-gray-600 text-sm mb-3 sm:mb-4 line-clamp-3">{{ $project->short_description }}
                             </p>

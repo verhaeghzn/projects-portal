@@ -2,7 +2,6 @@
 
 use App\Enums\PublicationStatus;
 use App\Models\Group;
-use App\Models\Organization;
 use App\Models\Project;
 use App\Models\ProjectSupervisor;
 use App\Models\ProjectType;
@@ -120,26 +119,6 @@ test('can filter by focus tag', function () {
     $response = $this->get('/projects?focus=' . $focusTag->slug);
 
     $response->assertSee($projectWithTag->name);
-});
-
-test('can filter by company involvement', function () {
-    $tueOrg = Organization::where('name', 'TU/e')->first();
-    if (!$tueOrg) {
-        $tueOrg = Organization::factory()->create(['name' => 'TU/e']);
-    }
-
-    $externalOrg = createOrganization(['name' => 'External Company']);
-
-    $projectWithCompany = createProject(['organization_id' => $externalOrg->id]);
-    $projectWithCompany->update(['publication_status' => PublicationStatus::Published]);
-
-    $projectWithoutCompany = createProject(['organization_id' => $tueOrg->id]);
-    $projectWithoutCompany->update(['publication_status' => PublicationStatus::Published]);
-
-    $response = $this->get('/projects?with_company=yes');
-
-    $response->assertSee($projectWithCompany->name);
-    $response->assertDontSee($projectWithoutCompany->name);
 });
 
 test('pagination works', function () {

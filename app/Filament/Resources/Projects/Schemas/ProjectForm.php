@@ -150,7 +150,25 @@ class ProjectForm
                     ->columnSpanFull(),
 
                 Select::make('tags')
-                    ->relationship('tags', 'name')
+                    ->relationship(
+                        'tags',
+                        'name',
+                        modifyQueryUsing: function ($query) {
+                            $groupId = Auth::user()?->group_id;
+                            if ($groupId) {
+                                $query->withCount(['projects as group_usage_count' => function ($q) use ($groupId) {
+                                    $q->whereHas('supervisorLinks', function ($q2) use ($groupId) {
+                                        $q2->where('supervisor_type', User::class)
+                                            ->whereHas('supervisor', fn ($q3) => $q3->where('group_id', $groupId));
+                                    });
+                                }])
+                                ->orderByDesc('group_usage_count')
+                                ->orderBy('name');
+                            } else {
+                                $query->orderBy('name');
+                            }
+                        }
+                    )
                     ->getOptionLabelFromRecordUsing(fn($record) => $record?->name . ' (' . $record?->category?->value . ')')
                     ->helperText("Do you really miss a tag? Please let us know, we'll add it as soon as possible.")
                     ->columnSpanFull()

@@ -28,22 +28,12 @@
         </div>
         
         <div class="bg-gray-50 rounded-lg p-5 sm:p-6 lg:p-8">
-            <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-3 sm:mb-4">Administrative & Staff Questions</h2>
+            <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-3 sm:mb-4">Support</h2>
             <p class="text-sm sm:text-base text-gray-700 mb-2">
-                For administrative questions, staff matters, or general inquiries about the projects portal, please contact:
+                For questions about the projects portal—including administrative and staff matters, or technical issues—please contact:
             </p>
             <p class="text-sm sm:text-base text-gray-900 font-medium">
-                J. (Joris) Remmers
-            </p>
-        </div>
-        
-        <div class="bg-gray-50 rounded-lg p-5 sm:p-6 lg:p-8">
-            <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-3 sm:mb-4">Technical Support</h2>
-            <p class="text-sm sm:text-base text-gray-700 mb-2">
-                For technical issues, bugs, or questions about the website functionality, please contact:
-            </p>
-            <p class="text-sm sm:text-base text-gray-900 font-medium">
-                B. (Bart) Verhaegh
+                Andreas Pollet
             </p>
         </div>
     </div>

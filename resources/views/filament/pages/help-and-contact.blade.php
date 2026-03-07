@@ -19,43 +19,20 @@
             </div>
         </x-filament::section>
 
-        <x-filament::section class="mb-3">
-            <x-slot name="heading">
-                Administrative & Staff Questions
-            </x-slot>
-            <x-slot name="description">
-                For administrative questions and staff matters
-            </x-slot>
-            <div class="prose max-w-none prose-a:underline">
-                <p class="mb-2">
-                    For administrative questions, staff matters, or general inquiries about the projects portal, please contact:
-                </p>
-                <div class="space-y-1">
-                    <p class="font-semibold text-lg mb-1">
-                        <a href="mailto:j.j.c.remmers@tue.nl" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline decoration-solid underline-offset-2">
-                            <u>Joris Remmers</u>
-                        </a>
-                    </p>
-                </div>
-            </div>
-        </x-filament::section>
-
         <x-filament::section>
             <x-slot name="heading">
-                Technical Support
+                Support
             </x-slot>
             <x-slot name="description">
-                For technical issues and website functionality questions
+                For questions about the portal—administrative, staff, or technical
             </x-slot>
             <div class="prose max-w-none prose-a:underline">
                 <p class="mb-2">
-                    For technical issues, bugs, or questions about the website functionality, please contact:
+                    For questions about the projects portal, including administrative and staff matters, or technical issues, please contact:
                 </p>
                 <div class="space-y-1">
                     <p class="font-semibold text-lg mb-1">
-                        <a href="mailto:b.j.verhaegh@tue.nl" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline decoration-solid underline-offset-2">
-                            <u>Bart Verhaegh</u>
-                        </a>
+                        Andreas Pollet
                     </p>
                 </div>
             </div>
