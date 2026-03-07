@@ -137,4 +137,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin seed (local/development only)
+    |--------------------------------------------------------------------------
+    |
+    | Credentials for the admin user created by AdminUserSeeder. Only used
+    | when seeding in local/development. Set in .env for develop if needed.
+    |
+    */
+
+    'admin_seed_email' => env('ADMIN_SEED_EMAIL', 'admin@example.com'),
+    'admin_seed_password' => env('ADMIN_SEED_PASSWORD', 'password'),
+
 ];

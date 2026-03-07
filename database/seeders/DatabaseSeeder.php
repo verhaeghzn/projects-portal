@@ -18,11 +18,9 @@ class DatabaseSeeder extends Seeder
         // Roles and permissions are created via migration
         $this->call(TagSeeder::class);
         $this->call(ProjectTypeSeeder::class);
-        // User::factory(10)->create();
 
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        if (app()->environment('local', 'development')) {
+            $this->call(AdminUserSeeder::class);
+        }
     }
 }
