@@ -373,7 +373,8 @@ class SamlController extends Controller
     }
 
     /**
-     * Handle students guard authentication (anonymous, session-based)
+     * Handle students guard authentication (session-based).
+     * Persistent ID is stored in the session via StudentsUser for the lifetime of the session.
      */
     protected function handleStudentsAuth(string $persistentId, ?string $eduAffiliation, ?string $email, string $returnUrl)
     {
@@ -387,7 +388,8 @@ class SamlController extends Controller
     }
 
     /**
-     * Handle admin guard authentication (database lookup by email or surf_id)
+     * Handle admin guard authentication (database lookup by email or surf_id).
+     * Saves the SURF persistent ID on the user every time so the two identities stay connected.
      */
     protected function handleAdminAuth(string $persistentId, ?string $email, string $returnUrl)
     {
@@ -395,10 +397,6 @@ class SamlController extends Controller
 
         if (!empty($email)) {
             $user = User::where('email', $email)->first();
-            if ($user && empty($user->surf_id)) {
-                $user->surf_id = $persistentId;
-                $user->save();
-            }
         }
 
         // No email or no match: try existing link by surf_id (returning user)
@@ -420,6 +418,10 @@ class SamlController extends Controller
         if ($panel && !$user->canAccessPanel($panel)) {
             return redirect('/admin/login')->with('error', 'You do not have access to the admin panel.');
         }
+
+        // Save persistent ID on every login so SURF and local user stay connected (first time and updates)
+        $user->surf_id = $persistentId;
+        $user->save();
 
         // Authenticate user
         Auth::guard('web')->login($user);
