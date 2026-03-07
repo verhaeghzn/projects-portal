@@ -308,6 +308,12 @@ class SamlController extends Controller
             $attributes = $samlAuth->getAttributes();
             $nameId = $samlAuth->getNameId();
 
+            // Log which attributes we received (helps debug missing email from SURF)
+            if (config('saml.settings.strict', false) || env('SAML_DEBUG', false)) {
+                Log::debug('SAML ACS: Raw attributes received: ' . json_encode(array_keys($attributes)));
+                Log::debug('SAML ACS: NameID: ' . $nameId);
+            }
+
             // Map attributes
             $persistentId = $this->extractAttribute($attributes, 'persistent_id') ?? $nameId;
             $email = $this->extractAttribute($attributes, 'email');
