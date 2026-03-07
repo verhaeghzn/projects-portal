@@ -27,11 +27,14 @@
                 <p class="mb-2">
                     For questions about the projects portal, including administrative and staff matters, or technical issues, please contact:
                 </p>
-                <div class="space-y-1">
+                <div class="space-y-1 mb-4">
                     <p class="font-semibold text-lg mb-1">
-                        Andreas Pollet
+                        Andreas Pollet — main support contact
                     </p>
                 </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    The portal is managed by Joris Remmers and Bart Verhaegh.
+                </p>
             </div>
         </x-filament::section>
 </x-filament-panels::page>

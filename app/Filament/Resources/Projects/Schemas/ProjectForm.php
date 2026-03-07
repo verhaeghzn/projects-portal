@@ -56,6 +56,7 @@ class ProjectForm
                         'name',
                         fn ($query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'Staff member - supervisor'))
                     )
+                    ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->name)
                     ->default(fn() => Auth::user()?->group?->group_leader_id ?? Auth::id())
                     ->required()
                     ->searchable(),
