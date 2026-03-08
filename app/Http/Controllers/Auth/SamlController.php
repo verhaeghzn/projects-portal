@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Auth\StudentsUser;
 use App\Helpers\SamlHelper;
 use App\Models\User;
+use Filament\Notifications\Notification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -202,6 +204,19 @@ class SamlController extends Controller
     }
 
     /**
+     * Redirect to admin login with a Filament notification so the message is visible on the login page.
+     */
+    protected function redirectToAdminLoginWithError(string $message): RedirectResponse
+    {
+        Notification::make()
+            ->title($message)
+            ->danger()
+            ->send();
+
+        return redirect('/admin/login');
+    }
+
+    /**
      * Start "Link SURF Conext" flow: user is already logged in, we store their id and send them to IdP.
      * When they return, we set their surf_id and redirect back to admin. Requires auth.
      */
@@ -210,7 +225,7 @@ class SamlController extends Controller
         $this->ensureSamlEnabled();
 
         if (!Auth::check()) {
-            return redirect('/admin/login')->with('error', 'You must be logged in to link your SURF Conext account.');
+            return $this->redirectToAdminLoginWithError('You must be logged in to link your SURF Conext account.');
         }
 
         $token = bin2hex(random_bytes(32));
@@ -402,12 +417,12 @@ class SamlController extends Controller
                 $userId = Cache::get('saml_link:' . $linkToken);
                 if ($userId === null) {
                     Log::warning('SAML Link: Token not found or expired', ['token_preview' => substr($linkToken, 0, 8) . '...']);
-                    return redirect('/admin/login')->with('error', 'Link session expired. Please try again from the admin panel.');
+                    return $this->redirectToAdminLoginWithError('Link session expired. Please try again from the admin panel.');
                 }
                 $user = User::find($userId);
                 if (!$user instanceof User) {
                     Cache::forget('saml_link:' . $linkToken);
-                    return redirect('/admin/login')->with('error', 'User no longer found. Please log in again.');
+                    return $this->redirectToAdminLoginWithError('User no longer found. Please log in again.');
                 }
                 $user->surf_id = $persistentId;
                 $user->save();
@@ -467,16 +482,16 @@ class SamlController extends Controller
             $linkExplanation = ' If you already have an admin account, log in with your username and password, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account for next time.';
             if (empty($email)) {
                 Log::warning('SAML Admin: No email in response and no user linked to this SURF identity.');
-                return redirect('/admin/login')->with('error', 'We don\'t recognise you as an admin user yet. Log in with your username and password first, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account. After that you can sign in with SURF Conext here.');
+                return $this->redirectToAdminLoginWithError('We don\'t recognise you as an admin user yet. Log in with your username and password first, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account. After that you can sign in with SURF Conext here.');
             }
             Log::warning('SAML Admin: User not found with email: ' . $email);
-            return redirect('/admin/login')->with('error', 'No admin account found with this email address.' . $linkExplanation);
+            return $this->redirectToAdminLoginWithError('No admin account found with this email address.' . $linkExplanation);
         }
 
         // Check if user has access to admin panel
         $panel = \Filament\Facades\Filament::getPanel('admin');
         if ($panel && !$user->canAccessPanel($panel)) {
-            return redirect('/admin/login')->with('error', 'You do not have access to the admin panel.');
+            return $this->redirectToAdminLoginWithError('You do not have access to the admin panel.');
         }
 
         // Save persistent ID on every login so SURF and local user stay connected (first time and updates)

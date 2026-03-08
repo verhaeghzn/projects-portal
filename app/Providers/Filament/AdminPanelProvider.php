@@ -53,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => route('saml.link'))
                     ->icon('heroicon-m-arrow-right-on-rectangle')
                     ->openUrlInNewTab(false)
+                    ->visible(fn (): bool => empty(auth()->user()?->surf_id))
                     : null,
             ]))
             ->plugins([
