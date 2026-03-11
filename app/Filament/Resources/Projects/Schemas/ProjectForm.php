@@ -56,6 +56,7 @@ class ProjectForm
                         'name',
                         fn ($query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'Staff member - supervisor'))
                     )
+                    ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->name)
                     ->default(fn() => Auth::user()?->group?->group_leader_id ?? Auth::id())
                     ->required()
                     ->searchable(),
@@ -85,7 +86,7 @@ class ProjectForm
                     ->helperText('The featured image of the project. The recommended size is 592 x 192 pixels.')
                     ->imageEditor()
                     ->rules([
-                        function ($attribute, $value, \Closure $fail) {
+                        function ($attribute, $value, $fail) {
                             // Skip validation if value is null or empty
                             if (empty($value)) {
                                 return;
@@ -243,7 +244,7 @@ class ProjectForm
                             ->minItems(1)
                             ->rules([
                                 function (): \Closure {
-                                    return function (string $attribute, $value, \Closure $fail): void {
+                                    return function (string $attribute, $value, $fail): void {
                                         // $value is the repeater state: array of items
                                         if (!is_array($value) || count($value) === 0) {
                                             return; // let minItems(1) handle empties

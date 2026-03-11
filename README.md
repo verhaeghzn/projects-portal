@@ -1,6 +1,6 @@
-# CEM Projects Portal
+# ME Projects Portal
 
-A small but modern web application for managing and showcasing research projects at the Computational and Experimental Mechanics (CEM) Division of Eindhoven University of Technology. The portal enables students to discover available bachelor thesis projects and master thesis projects, while providing administrators and supervisors with powerful tools to manage projects and track their status.
+A small but modern web application for managing and showcasing research projects at the Department of Mechanical Engineering of Eindhoven University of Technology. The department is organized into three divisions—Thermo-Fluids Engineering (TFE), Computational and Experimental Mechanics (CEM), and Dynamical Systems Design (DSD). The portal enables students to discover available bachelor thesis projects and master thesis projects across the department, while providing administrators and supervisors with powerful tools to manage projects and track their status.
 
 ## 🎯 Features
 
@@ -14,7 +14,7 @@ A small but modern web application for managing and showcasing research projects
   - Company involvement
 - **Project Details**: View detailed information about each project, including descriptions, supervisors, and contact information
 - **Past Projects**: Archive of completed projects
-- **Contact**: Information about the CEM Division and project inquiries
+- **Contact**: Information about the Department of Mechanical Engineering and project inquiries
 
 ### Admin Features (Filament Panel)
 - **Project Management**: Create, edit, and manage projects with rich content editing
@@ -222,8 +222,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📧 Contact
 
-For questions about the CEM Projects Portal or project inquiries, please visit the [contact page](/contact) or reach out to the Computational and Experimental Mechanics Division at Eindhoven University of Technology. Repo owner can be contacted for technical matters: @Rozenlicht. (Bart Verhaegh)
+For questions about the ME Projects Portal or project inquiries, please visit the [contact page](/contact) or reach out to the Department of Mechanical Engineering at Eindhoven University of Technology. Repo owner can be contacted for technical matters: @Rozenlicht. (Bart Verhaegh)
 
 ---
 
-**Built with ❤️ for the CEM Division at Eindhoven University of Technology**
+**Built with ❤️ for the Department of Mechanical Engineering at Eindhoven University of Technology**

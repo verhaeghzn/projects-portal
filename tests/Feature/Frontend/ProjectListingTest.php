@@ -135,5 +135,58 @@ test('pagination works', function () {
     $response->assertViewHas('projects');
 });
 
+test('division routes return 200 and show project index', function () {
+    $response = $this->get(route('projects.division.thermo-fluids-engineering'));
+    $response->assertStatus(200);
+    $response->assertViewIs('projects.index');
+    $response->assertViewHas('selectedDivision');
+    $response->assertSee('Thermo-Fluids Engineering (TFE)');
+
+    $response = $this->get(route('projects.division.computational-experimental-mechanics'));
+    $response->assertStatus(200);
+    $response->assertViewIs('projects.index');
+    $response->assertSee('Computational and Experimental Mechanics (CEM)');
+
+    $response = $this->get(route('projects.division.dynamical-systems-design'));
+    $response->assertStatus(200);
+    $response->assertViewIs('projects.index');
+    $response->assertSee('Dynamical Systems Design (DSD)');
+});
+
+test('projects index without division shows all projects', function () {
+    $project = createProject();
+    $project->update(['publication_status' => PublicationStatus::Published]);
+
+    $response = $this->get(route('projects.index'));
+
+    $response->assertStatus(200);
+    $response->assertViewHas('selectedDivision', null);
+    $response->assertSee($project->name);
+});
+
+test('CEM division route filters by CEM sections only', function () {
+    $cemSection = Section::firstOrCreate(
+        ['name' => 'Mechanics of Materials'],
+        ['abbrev_id' => 'MoM']
+    );
+    $group = createGroup(['section_id' => $cemSection->id]);
+    $supervisor = createSupervisor(['group_id' => $group->id]);
+
+    $cemProject = createProject();
+    $cemProject->supervisorLinks()->delete();
+    ProjectSupervisor::create([
+        'project_id' => $cemProject->id,
+        'supervisor_type' => User::class,
+        'supervisor_id' => $supervisor->id,
+        'order_rank' => 1,
+    ]);
+    $cemProject->update(['publication_status' => PublicationStatus::Published]);
+
+    $response = $this->get(route('projects.division.computational-experimental-mechanics'));
+
+    $response->assertStatus(200);
+    $response->assertSee($cemProject->name);
+});
+
 
 

@@ -20,9 +20,8 @@
         <section class="bg-gray-50 rounded-lg p-5 sm:p-6 lg:p-8">
             <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-3 sm:mb-4">1. Introduction</h2>
             <p class="mb-3">
-                This privacy statement explains how the CEM Projects Portal (the &quot;Portal&quot;) processes and protects personal data.
-                The Portal is managed by the Computational and Experimental Mechanics (CEM) Division within the Department of Mechanical Engineering
-                of Eindhoven University of Technology (TU/e).
+                This privacy statement explains how the Mechanical Engineering Projects Portal (the &quot;Portal&quot;) processes and protects personal data.
+                The Portal is managed by the Department of Mechanical Engineering of Eindhoven University of Technology (TU/e).
             </p>
             <p>
                 The Portal supports students enrolled in an academic program in selecting a thesis/graduation project.
@@ -35,14 +34,13 @@
             <h2 class="text-xl sm:text-2xl font-heading text-gray-900 mb-3 sm:mb-4">2. Controller</h2>
             <p class="mb-3">
                 The <strong>TU/e Executive Board</strong> is the controller within the meaning of the GDPR for the processing activities described in this privacy statement.
-                The CEM Division manages the Portal on behalf of TU/e.
+                The Department of Mechanical Engineering manages the Portal on behalf of TU/e.
             </p>
             <p class="mb-2">
                 Correspondence address:
             </p>
             <p class="mb-2">
                 <strong>Eindhoven University of Technology (TU/e)</strong><br>
-                Computational and Experimental Mechanics (CEM) Division<br>
                 Department of Mechanical Engineering<br>
                 PO Box 513<br>
                 5600 MB Eindhoven<br>
@@ -264,7 +262,7 @@
             </p>
             <p class="mb-2">
                 <strong>J. (Joris) Remmers</strong><br>
-                Computational and Experimental Mechanics (CEM) Division<br>
+                Department of Mechanical Engineering<br>
                 Eindhoven University of Technology
             </p>
             <p class="mb-2">
