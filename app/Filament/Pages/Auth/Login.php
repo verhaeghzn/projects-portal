@@ -10,7 +10,7 @@ class Login extends BaseLogin
 {
     public function getSubheading(): string | Htmlable | null
     {
-        if (SamlHelper::isEnabled()) {
+        if (SamlHelper::isLoginRequired()) {
             return 'Sign in to your account using your password or SURF Conext SSO';
         }
         
@@ -23,7 +23,7 @@ class Login extends BaseLogin
             $this->getAuthenticateFormAction(),
         ];
         
-        if (SamlHelper::isEnabled()) {
+        if (SamlHelper::isLoginRequired()) {
             $actions[] = $this->getSamlLoginAction();
         }
         

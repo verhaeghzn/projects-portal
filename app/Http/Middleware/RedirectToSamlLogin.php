@@ -16,7 +16,7 @@ class RedirectToSamlLogin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!SamlHelper::isEnabled()) {
+        if (!SamlHelper::isLoginRequired()) {
             return $next($request);
         }
 
