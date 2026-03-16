@@ -91,7 +91,7 @@
         <div class="content">
             <h2>Welcome, {{ $user->name }}!</h2>
             
-            <p>You have been invited to join the {{ config('app.name') }}. This platform allows you to publish and manage projects within our division.</p>
+            <p>You have been invited to join the {{ config('app.name') }}. This platform allows you to publish and manage projects within our department.</p>
             
             <p>To get started, please complete your account setup by clicking the button below:</p>
             
