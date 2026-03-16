@@ -8,9 +8,12 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class UsersTable
@@ -63,7 +66,29 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Filter::make('invited_sent')
+                    ->form([
+                        Select::make('invited_within')
+                            ->label('Invite sent')
+                            ->placeholder('All users')
+                            ->options([
+                                '7' => 'Past 7 days',
+                                '14' => 'Past 14 days',
+                                '30' => 'Past 30 days',
+                                '90' => 'Past 90 days',
+                            ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $days = $data['invited_within'] ?? null;
+                        if ($days === null || $days === '') {
+                            return $query;
+                        }
+                        $since = now()->subDays((int) $days);
+                        return $query
+                            ->whereNotNull('invitation_token')
+                            ->whereNull('email_verified_at')
+                            ->where('invitation_sent_at', '>=', $since);
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),
