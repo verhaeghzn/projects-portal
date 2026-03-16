@@ -72,15 +72,20 @@ class GroupMembers extends Page implements HasTable
 
                 TextColumn::make('email_verified_at')
                     ->label('Status')
-                    ->formatStateUsing(fn ($state, User $record): string => 
-                        $record->invitation_token !== null && $record->email_verified_at === null 
-                            ? 'Pending Activation' 
+                    ->formatStateUsing(fn ($state, User $record): string =>
+                        $record->invitation_token !== null && $record->email_verified_at === null
+                            ? 'Pending Activation'
                             : ($state ? 'Activated' : 'Inactive')
                     )
+                    ->description(fn ($state, User $record): ?string =>
+                        $record->invitation_token !== null && $record->email_verified_at === null && $record->invitation_sent_at
+                            ? 'Invite sent at ' . $record->invitation_sent_at->format('M j, Y g:i A')
+                            : null
+                    )
                     ->badge()
-                    ->color(fn ($state, User $record): string => 
-                        $record->invitation_token !== null && $record->email_verified_at === null 
-                            ? 'warning' 
+                    ->color(fn ($state, User $record): string =>
+                        $record->invitation_token !== null && $record->email_verified_at === null
+                            ? 'warning'
                             : ($state ? 'success' : 'gray')
                     )
                     ->sortable(),
