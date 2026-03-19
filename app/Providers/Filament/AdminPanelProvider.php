@@ -6,6 +6,7 @@ use App\Filament\Pages\Auth\Login;
 use App\Helpers\SamlHelper;
 use App\Livewire\SurfConextProfileSection;
 use Filament\Actions\Action;
+use App\Http\Middleware\ImpersonateMiddleware;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -14,6 +15,8 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -56,6 +59,11 @@ class AdminPanelProvider extends PanelProvider
                     ->openUrlInNewTab(false)
                     ->visible(fn (): bool => empty(auth()->user()?->surf_id))
                     : null,
+                'exit-impersonation' => Action::make('exitImpersonation')
+                    ->label('Exit impersonation')
+                    ->url(fn (): string => route('admin.impersonate.leave'))
+                    ->icon('heroicon-m-arrow-right-on-rectangle')
+                    ->visible(fn (): bool => session()->has('impersonate_id')),
             ]))
             ->plugins([
                 FilamentEditProfilePlugin::make()
@@ -68,6 +76,7 @@ class AdminPanelProvider extends PanelProvider
                     ->shouldRegisterNavigation(false)
                     ->customProfileComponents([SurfConextProfileSection::class])
             ])
+            ->renderHook(PanelsRenderHook::TOPBAR_BEFORE, fn (): View|string => session()->has('impersonate_id') ? view('filament.components.impersonation-banner') : '')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -92,6 +101,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                ImpersonateMiddleware::class,
             ]);
     }
 }

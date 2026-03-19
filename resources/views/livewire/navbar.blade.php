@@ -51,6 +51,9 @@
 
                 <a href="{{ route('projects.past') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Past Projects</a>
                 <a href="{{ route('contact') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Contact</a>
+                @auth
+                    <a href="{{ url('/admin') }}" class="bg-[#7fabc9] hover:bg-[#16537a] text-white px-3 py-2 text-sm font-medium font-sans rounded-md transition-colors">Naar beheer</a>
+                @endauth
             </div>
 
             {{-- Mobile menu button --}}
@@ -92,6 +95,11 @@
                 <a href="{{ route('contact') }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
                     Contact
                 </a>
+                @auth
+                    <a href="{{ url('/admin') }}" class="block px-4 py-3 text-base font-medium text-white bg-[#7fabc9] hover:bg-[#16537a] rounded-md transition-colors">
+                        Naar beheer
+                    </a>
+                @endauth
             </div>
         </div>
     </div>

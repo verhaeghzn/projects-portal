@@ -92,6 +92,17 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('impersonate')
+                    ->label('Impersonate')
+                    ->icon('heroicon-o-user-circle')
+                    ->color('gray')
+                    ->url(fn (User $record): string => route('admin.impersonate.start', $record))
+                    ->visible(fn (User $record): bool =>
+                        auth()->user()?->hasRole('Administrator') === true
+                        && $record->id !== auth()->id()
+                        && ! $record->hasRole('Administrator')
+                    )
+                    ->openUrlInNewTab(false),
                 Action::make('resendInvite')
                     ->label('Resend Invite')
                     ->icon('heroicon-o-envelope')
