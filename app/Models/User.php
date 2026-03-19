@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Lab404\Impersonate\Models\Impersonate;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
@@ -20,7 +19,7 @@ use Spatie\Sluggable\SlugOptions;
 class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasSlug, Impersonate;
+    use HasFactory, Notifiable, HasRoles, HasSlug;
 
     /**
      * The attributes that are mass assignable.
@@ -100,19 +99,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     }
 
     /**
-     * Only administrators can impersonate other users.
+     * Only administrators may impersonate other users.
      */
     public function canImpersonate(): bool
     {
         return $this->hasRole('Administrator');
-    }
-
-    /**
-     * Any user can be impersonated (except when restricted by canImpersonate on the actor).
-     */
-    public function canBeImpersonated(): bool
-    {
-        return true;
     }
 
     public function getFilamentAvatarUrl(): ?string

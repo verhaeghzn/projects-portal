@@ -97,7 +97,7 @@
                 </a>
                 @auth
                     <a href="{{ url('/admin') }}" class="block px-4 py-3 text-base font-medium text-white bg-[#7fabc9] hover:bg-[#16537a] rounded-md transition-colors">
-                        Naar beheer
+                        Staff access
                     </a>
                 @endauth
             </div>

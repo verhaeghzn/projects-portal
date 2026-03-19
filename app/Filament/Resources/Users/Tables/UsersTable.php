@@ -2,16 +2,19 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\Division;
 use App\Models\User;
 use App\Notifications\UserInvited;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use STS\FilamentImpersonate\Actions\Impersonate;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -40,6 +43,20 @@ class UsersTable
                     ->sortable()
                     ->badge(),
 
+                TextColumn::make('group.section.division.name')
+                    ->label('Division')
+                    ->placeholder('–')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        $subquery = \Illuminate\Support\Facades\DB::table('groups')
+                            ->select('divisions.name')
+                            ->join('sections', 'sections.id', '=', 'groups.section_id')
+                            ->join('divisions', 'divisions.id', '=', 'sections.division_id')
+                            ->whereColumn('groups.id', 'users.group_id')
+                            ->limit(1);
+
+                        return $query->orderBy($subquery, $direction);
+                    }),
+
                 TextColumn::make('email_verified_at')
                     ->label('Status')
                     ->formatStateUsing(fn ($state, User $record): string =>
@@ -66,6 +83,26 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('role')
+                    ->label('Role')
+                    ->relationship('roles', 'name')
+                    ->preload(),
+
+                SelectFilter::make('division_id')
+                    ->label('Division')
+                    ->options(fn (): \Illuminate\Support\Collection => Division::orderBy('name')->pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data): Builder {
+                        $divisionId = $data['division_id'] ?? null;
+                        if (blank($divisionId)) {
+                            return $query;
+                        }
+                        return $query->whereHas('group', function (Builder $q) use ($divisionId): void {
+                            $q->whereHas('section', function (Builder $q2) use ($divisionId): void {
+                                $q2->where('division_id', $divisionId);
+                            });
+                        });
+                    }),
+
                 Filter::make('invited_sent')
                     ->form([
                         Select::make('invited_within')
@@ -91,18 +128,8 @@ class UsersTable
                     }),
             ])
             ->recordActions([
+                Impersonate::make(),
                 EditAction::make(),
-                Action::make('impersonate')
-                    ->label('Impersonate')
-                    ->icon('heroicon-o-user-plus')
-                    ->color('gray')
-                    ->url(fn (User $record): string => route('impersonate', $record->id))
-                    ->openUrlInNewTab(false)
-                    ->visible(fn (User $record): bool =>
-                        auth()->user()?->canImpersonate() === true
-                        && $record->canBeImpersonated()
-                        && $record->id !== auth()->id()
-                    ),
                 Action::make('resendInvite')
                     ->label('Resend Invite')
                     ->icon('heroicon-o-envelope')

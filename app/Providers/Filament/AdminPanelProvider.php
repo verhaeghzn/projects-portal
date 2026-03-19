@@ -14,7 +14,6 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Illuminate\Contracts\View\View;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -57,11 +56,6 @@ class AdminPanelProvider extends PanelProvider
                     ->openUrlInNewTab(false)
                     ->visible(fn (): bool => empty(auth()->user()?->surf_id))
                     : null,
-                'leave-impersonation' => Action::make('leaveImpersonation')
-                    ->label('Leave impersonation')
-                    ->url(fn (): string => route('impersonate.leave'))
-                    ->icon('heroicon-m-arrow-left-on-rectangle')
-                    ->visible(fn (): bool => app('impersonate')->isImpersonating()),
             ]))
             ->plugins([
                 FilamentEditProfilePlugin::make()
@@ -98,7 +92,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
-            ->renderHook('panels::body.start', fn (): View => view('filament.components.impersonation-banner'));
+            ]);
     }
 }

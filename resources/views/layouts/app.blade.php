@@ -12,6 +12,7 @@
 </head>
 <body class="bg-white text-gray-900 font-sans">
     @livewire('navbar')
+    @include('components.impersonate-banner')
 
     <main class="min-h-screen">
         @yield('content')
