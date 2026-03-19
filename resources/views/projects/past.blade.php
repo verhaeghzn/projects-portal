@@ -42,10 +42,6 @@
                             </div>
                         @endif
                         
-                        @if($project->student_name)
-                            <p class="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Student: {{ $project->student_name }}</p>
-                        @endif
-                        
                         @if($project->supervisors->count() > 0)
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2 pt-3 sm:pt-4 border-t border-gray-200">
                                 <span class="text-xs sm:text-sm text-gray-500">Supervisors:</span>

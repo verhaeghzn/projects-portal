@@ -35,3 +35,8 @@ Route::middleware($middleware)->group(function () {
 
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');
+
+// Impersonation (admin only; authorization enforced via User::canImpersonate)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::impersonate();
+});

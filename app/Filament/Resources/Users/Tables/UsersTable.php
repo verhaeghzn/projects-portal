@@ -92,6 +92,17 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('impersonate')
+                    ->label('Impersonate')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('gray')
+                    ->url(fn (User $record): string => route('impersonate', $record->id))
+                    ->openUrlInNewTab(false)
+                    ->visible(fn (User $record): bool =>
+                        auth()->user()?->canImpersonate() === true
+                        && $record->canBeImpersonated()
+                        && $record->id !== auth()->id()
+                    ),
                 Action::make('resendInvite')
                     ->label('Resend Invite')
                     ->icon('heroicon-o-envelope')
