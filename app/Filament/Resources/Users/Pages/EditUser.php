@@ -17,7 +17,7 @@ class EditUser extends EditRecord
         $record = $this->getRecord();
 
         return [
-            Impersonate::make()->impersonateRecord($record),
+            Impersonate::make()->impersonateRecord($record)->redirectTo('/admin'),
             DeleteAction::make(),
         ];
     }

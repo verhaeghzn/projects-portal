@@ -29,4 +29,12 @@ class Division extends Model
     {
         return $this->hasMany(Section::class);
     }
+
+    /**
+     * Abbreviation derived from name, e.g. "Thermo-Fluids Engineering (TFE)" → "TFE".
+     */
+    public function getAbbrevAttribute(): ?string
+    {
+        return preg_match('/\s*\(([A-Za-z]+)\)\s*$/', $this->name, $m) ? $m[1] : null;
+    }
 }

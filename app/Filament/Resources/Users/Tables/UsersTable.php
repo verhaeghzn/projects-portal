@@ -45,6 +45,7 @@ class UsersTable
 
                 TextColumn::make('group.section.division.name')
                     ->label('Division')
+                    ->formatStateUsing(fn ($state, User $record): string => $record->group?->section?->division?->abbrev ?? $state ?? '–')
                     ->placeholder('–')
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         $subquery = \Illuminate\Support\Facades\DB::table('groups')
@@ -90,7 +91,7 @@ class UsersTable
 
                 SelectFilter::make('division_id')
                     ->label('Division')
-                    ->options(fn (): \Illuminate\Support\Collection => Division::orderBy('name')->pluck('name', 'id'))
+                    ->options(fn (): \Illuminate\Support\Collection => Division::orderBy('name')->get()->mapWithKeys(fn (Division $d) => [$d->id => $d->abbrev ?? $d->name]))
                     ->query(function (Builder $query, array $data): Builder {
                         $divisionId = $data['division_id'] ?? null;
                         if (blank($divisionId)) {
@@ -128,7 +129,7 @@ class UsersTable
                     }),
             ])
             ->recordActions([
-                Impersonate::make(),
+                Impersonate::make()->redirectTo('/admin'),
                 EditAction::make(),
                 Action::make('resendInvite')
                     ->label('Resend Invite')
