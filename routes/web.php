@@ -3,7 +3,6 @@
 use App\Helpers\SamlHelper;
 use App\Http\Controllers\Auth\SamlController;
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\ImpersonateController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\ProjectController;
@@ -36,9 +35,3 @@ Route::middleware($middleware)->group(function () {
 
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');
-
-// Admin impersonation – must be authenticated
-Route::middleware(['web', 'auth'])->prefix('admin')->group(function () {
-    Route::get('impersonate/{user}', [ImpersonateController::class, 'start'])->name('admin.impersonate.start');
-    Route::get('impersonate/leave', [ImpersonateController::class, 'leave'])->name('admin.impersonate.leave');
-});
