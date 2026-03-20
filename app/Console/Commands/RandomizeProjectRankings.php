@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\PublicationStatus;
 use App\Models\Project;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +32,7 @@ class RandomizeProjectRankings extends Command
         try {
             // Get all published, available projects (matching the criteria used in ProjectController)
             $projects = Project::available()
-                ->where('publication_status', PublicationStatus::Published->value)
+                ->where('is_published', true)
                 ->pluck('id')
                 ->shuffle();
 
@@ -46,9 +45,11 @@ class RandomizeProjectRankings extends Command
             });
 
             $this->info("✓ Successfully randomized rankings for {$projects->count()} projects.");
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Failed to randomize project rankings: ' . $e->getMessage());
+            $this->error('Failed to randomize project rankings: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

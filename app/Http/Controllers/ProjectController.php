@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\PublicationStatus;
 use App\Models\Division;
 use App\Models\Group;
 use App\Models\Project;
@@ -40,7 +39,7 @@ class ProjectController extends Controller
 
         $query = Project::with(['supervisors', 'tags', 'owner', 'organization', 'types'])
             ->available()
-            ->where('publication_status', PublicationStatus::Published->value);
+            ->where('is_published', true);
 
         if ($selectedDivision && ! empty($selectedDivision['section_slugs'])) {
             $divisionSectionSlugs = $selectedDivision['section_slugs'];
@@ -92,14 +91,14 @@ class ProjectController extends Controller
         if ($supervisorSlug) {
             // Filter by internal supervisors only (User model)
             $matchingUserIds = User::where('slug', $supervisorSlug)->pluck('id');
-            
+
             if ($matchingUserIds->isNotEmpty()) {
                 // Filter projects that have a supervisor matching the slug
                 $query->whereHas('supervisorLinks', function ($q) use ($matchingUserIds) {
                     $q->where('supervisor_type', User::class)
                         ->whereIn('supervisor_id', $matchingUserIds);
                 });
-                
+
                 // Get supervisor name for display
                 $supervisor = User::where('slug', $supervisorSlug)->first();
                 if ($supervisor) {
@@ -149,7 +148,7 @@ class ProjectController extends Controller
         $supervisors = $supervisors->map(function ($supervisor) {
             // Use the user's slug for internal supervisors
             $slug = $supervisor->supervisor?->slug ?? '';
-            
+
             return [
                 'id' => $supervisor->id,
                 'name' => $supervisor->name,
@@ -158,7 +157,7 @@ class ProjectController extends Controller
             ];
         })->filter(function ($supervisor) {
             // Filter out entries without a valid slug
-            return !empty($supervisor['slug']);
+            return ! empty($supervisor['slug']);
         })->unique('slug')->values();
 
         return view('projects.index', [
@@ -194,7 +193,7 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         // Only show published projects
-        if ($project->publication_status !== PublicationStatus::Published) {
+        if (! $project->is_published) {
             abort(404);
         }
 
@@ -203,7 +202,7 @@ class ProjectController extends Controller
             'tags',
             'owner.group.section',
             'organization',
-            'types'
+            'types',
         ]);
 
         return view('projects.show', [

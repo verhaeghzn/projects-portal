@@ -1,7 +1,5 @@
 <?php
 
-use App\Enums\PublicationStatus;
-use App\Models\Project;
 use App\Models\ProjectSupervisor;
 use App\Models\Tag;
 use App\Models\User;
@@ -12,9 +10,9 @@ beforeEach(function () {
 
 test('project detail route returns 200 for published projects', function () {
     $project = createProject();
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertStatus(200);
     $response->assertSee($project->name);
@@ -22,18 +20,18 @@ test('project detail route returns 200 for published projects', function () {
 
 test('project detail returns 404 for concept projects', function () {
     $project = createProject();
-    $project->update(['publication_status' => PublicationStatus::Concept]);
+    $project->update(['is_published' => false]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertStatus(404);
 });
 
 test('project details are displayed', function () {
     $project = createProject();
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertSee($project->name);
     $response->assertSee($project->short_description);
@@ -49,9 +47,9 @@ test('supervisor information is displayed', function () {
         'supervisor_id' => $supervisor->id,
         'order_rank' => 1,
     ]);
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertSee($supervisor->name);
 });
@@ -66,9 +64,9 @@ test('external supervisor information is displayed', function () {
         'external_supervisor_name' => 'External Supervisor',
         'order_rank' => 1,
     ]);
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertSee('External Supervisor');
 });
@@ -77,12 +75,9 @@ test('tags are displayed', function () {
     $tag = Tag::factory()->create();
     $project = createProject();
     $project->tags()->attach($tag->id);
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects/' . $project->slug);
+    $response = $this->get('/projects/'.$project->slug);
 
     $response->assertSee($tag->name);
 });
-
-
-

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\PublicationStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +19,7 @@ return new class extends Migration
 
         // Initialize rankings for existing published, available projects
         $projectIds = DB::table('projects')
-            ->where('publication_status', PublicationStatus::Published->value)
+            ->where('publication_status', 'published')
             ->whereNull('student_name')
             ->whereNull('student_email')
             ->pluck('id')

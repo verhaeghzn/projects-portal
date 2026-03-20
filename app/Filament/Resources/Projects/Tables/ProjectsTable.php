@@ -2,10 +2,6 @@
 
 namespace App\Filament\Resources\Projects\Tables;
 
-use App\Enums\PublicationStatus;
-use App\Models\Group;
-use App\Models\ProjectType;
-use App\Models\Section;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -38,7 +34,7 @@ class ProjectsTable
                 TextColumn::make('types.name')
                     ->label('Types')
                     ->badge()
-                    ->formatStateUsing(fn($record) => $record->types->pluck('name')->join(', ')),
+                    ->formatStateUsing(fn ($record) => $record->types->pluck('name')->join(', ')),
 
                 TextColumn::make('owner.name')
                     ->label('Owner')
@@ -53,25 +49,26 @@ class ProjectsTable
                     ->getStateUsing(function ($record) {
                         // Get all users that are supervisors in correct order, exclude externals
                         return $record->supervisorLinks
-                            ->filter(fn($link) => !$link->isExternal())
-                            ->map(function($link) {
+                            ->filter(fn ($link) => ! $link->isExternal())
+                            ->map(function ($link) {
                                 $supervisor = $link->supervisor;
-                                if (!$supervisor) {
+                                if (! $supervisor) {
                                     return null;
                                 }
-                                
+
                                 // If avatar exists, return the URL
                                 if ($supervisor->avatar_url) {
                                     return \Illuminate\Support\Facades\Storage::url($supervisor->avatar_url);
                                 }
-                                
+
                                 // Otherwise, generate an SVG data URL with the initial
                                 $initial = strtoupper(substr($supervisor->name, 0, 1));
                                 $svg = sprintf(
                                     '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#7fabc9"/><text x="20" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="white" text-anchor="middle" dominant-baseline="central">%s</text></svg>',
                                     htmlspecialchars($initial)
                                 );
-                                return 'data:image/svg+xml;base64,' . base64_encode($svg);
+
+                                return 'data:image/svg+xml;base64,'.base64_encode($svg);
                             })
                             ->filter()
                             ->values()
@@ -79,8 +76,8 @@ class ProjectsTable
                     })
                     ->tooltip(function ($record) {
                         return $record->supervisorLinks
-                            ->filter(fn($link) => !$link->isExternal())
-                            ->map(fn($link) => $link->supervisor?->name)
+                            ->filter(fn ($link) => ! $link->isExternal())
+                            ->map(fn ($link) => $link->supervisor?->name)
                             ->filter()
                             ->join(', ');
                     })
@@ -107,11 +104,12 @@ class ProjectsTable
                                 'group_projects' => 'Group Projects',
                                 'all' => 'All Projects',
                             ])
-                            ->default('my_projects')
+                            ->default('my_projects'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($data['ownership'] === 'my_projects') {
                             $user = Auth::user();
+
                             return $query->where(function ($q) use ($user) {
                                 $q->where('project_owner_id', $user->id)
                                     ->orWhereHas('supervisorLinks', function ($subQ) use ($user) {
@@ -123,11 +121,13 @@ class ProjectsTable
                         if ($data['ownership'] === 'group_projects') {
                             $user = Auth::user();
                             $groupUserIds = $user->group->users->pluck('id');
+
                             return $query->whereHas('supervisorLinks', function ($subQ) use ($groupUserIds) {
                                 $subQ->where('supervisor_type', User::class)
                                     ->whereIn('supervisor_id', $groupUserIds);
                             });
                         }
+
                         return $query;
                     }),
 
@@ -145,7 +145,7 @@ class ProjectsTable
                                 'taken' => 'Taken',
                                 'concept' => 'Concept',
                             ])
-                            ->default('available')
+                            ->default('available'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($data['status'] === 'available') {
@@ -157,10 +157,11 @@ class ProjectsTable
                             });
                         }
                         if ($data['status'] === 'concept') {
-                            return $query->where('publication_status', PublicationStatus::Concept->value);
+                            return $query->where('is_published', false);
                         }
+
                         return $query;
-                    })
+                    }),
             ])
             ->filtersLayout(\Filament\Tables\Enums\FiltersLayout::AboveContent)
             ->defaultSort('created_at', 'desc')

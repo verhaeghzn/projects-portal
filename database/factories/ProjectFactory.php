@@ -2,9 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\PublicationStatus;
 use App\Models\Project;
-use App\Models\ProjectType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -26,7 +24,7 @@ class ProjectFactory extends Factory
             'name' => fake()->sentence(4),
             'short_description' => fake()->paragraph(),
             'richtext_content' => fake()->paragraphs(3, true),
-            'publication_status' => PublicationStatus::Published,
+            'is_published' => true,
             'project_owner_id' => User::factory(),
         ];
     }
@@ -37,7 +35,7 @@ class ProjectFactory extends Factory
     public function concept(): static
     {
         return $this->state(fn (array $attributes) => [
-            'publication_status' => PublicationStatus::Concept,
+            'is_published' => false,
         ]);
     }
 
@@ -63,6 +61,3 @@ class ProjectFactory extends Factory
         ]);
     }
 }
-
-
-

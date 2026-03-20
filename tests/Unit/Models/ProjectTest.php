@@ -1,12 +1,9 @@
 <?php
 
-use App\Enums\PublicationStatus;
-use App\Models\Group;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\ProjectSupervisor;
 use App\Models\ProjectType;
-use App\Models\Section;
 use App\Models\Tag;
 use App\Models\User;
 
@@ -108,7 +105,7 @@ test('created_by_id is auto-set on creation', function () {
 test('project validates first supervisor must be staff member', function () {
     $researcher = createUserWithRole('Researcher');
     $project = Project::factory()->make();
-    
+
     // Save project first
     $project->save();
 
@@ -123,8 +120,7 @@ test('project validates first supervisor must be staff member', function () {
 
     // Reload to get the supervisor link
     $project->load('supervisorLinks.supervisor.roles');
-    
-    // Attempting to save should throw validation exception
-    expect(fn() => $project->save())->toThrow(\Illuminate\Validation\ValidationException::class);
-});
 
+    // Attempting to save should throw validation exception
+    expect(fn () => $project->save())->toThrow(\Illuminate\Validation\ValidationException::class);
+});

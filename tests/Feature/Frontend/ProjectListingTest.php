@@ -1,8 +1,5 @@
 <?php
 
-use App\Enums\PublicationStatus;
-use App\Models\Group;
-use App\Models\Project;
 use App\Models\ProjectSupervisor;
 use App\Models\ProjectType;
 use App\Models\Section;
@@ -22,7 +19,7 @@ test('projects route returns 200', function () {
 
 test('projects are displayed', function () {
     $project = createProject();
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
     $response = $this->get('/projects');
 
@@ -32,14 +29,14 @@ test('projects are displayed', function () {
 
 test('only published and available projects are shown', function () {
     $publishedProject = createProject();
-    $publishedProject->update(['publication_status' => PublicationStatus::Published]);
+    $publishedProject->update(['is_published' => true]);
 
     $conceptProject = createProject();
-    $conceptProject->update(['publication_status' => PublicationStatus::Concept]);
+    $conceptProject->update(['is_published' => false]);
 
     $takenProject = createProject();
     $takenProject->update([
-        'publication_status' => PublicationStatus::Published,
+        'is_published' => true,
         'student_name' => 'John Doe',
     ]);
 
@@ -56,11 +53,11 @@ test('can filter by project type', function () {
 
     $bachelorProject = createProject();
     $bachelorProject->types()->attach($bachelorType->id);
-    $bachelorProject->update(['publication_status' => PublicationStatus::Published]);
+    $bachelorProject->update(['is_published' => true]);
 
     $masterProject = createProject();
     $masterProject->types()->attach($masterType->id);
-    $masterProject->update(['publication_status' => PublicationStatus::Published]);
+    $masterProject->update(['is_published' => true]);
 
     $response = $this->get('/projects?type=bachelor_thesis');
 
@@ -70,18 +67,18 @@ test('can filter by project type', function () {
 
 test('can filter by nature tag', function () {
     $natureTag = Tag::where('category', TagCategory::Nature)->first();
-    if (!$natureTag) {
+    if (! $natureTag) {
         $natureTag = Tag::factory()->category(TagCategory::Nature)->create();
     }
 
     $projectWithTag = createProject();
     $projectWithTag->tags()->attach($natureTag->id);
-    $projectWithTag->update(['publication_status' => PublicationStatus::Published]);
+    $projectWithTag->update(['is_published' => true]);
 
     $projectWithoutTag = createProject();
-    $projectWithoutTag->update(['publication_status' => PublicationStatus::Published]);
+    $projectWithoutTag->update(['is_published' => true]);
 
-    $response = $this->get('/projects?nature=' . $natureTag->slug);
+    $response = $this->get('/projects?nature='.$natureTag->slug);
 
     $response->assertSee($projectWithTag->name);
 });
@@ -99,24 +96,24 @@ test('can filter by section', function () {
         'supervisor_id' => $supervisor->id,
         'order_rank' => 1,
     ]);
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects?section=' . $section->slug);
+    $response = $this->get('/projects?section='.$section->slug);
 
     $response->assertSee($project->name);
 });
 
 test('can filter by focus tag', function () {
     $focusTag = Tag::where('category', TagCategory::Focus)->first();
-    if (!$focusTag) {
+    if (! $focusTag) {
         $focusTag = Tag::factory()->category(TagCategory::Focus)->create();
     }
 
     $projectWithTag = createProject();
     $projectWithTag->tags()->attach($focusTag->id);
-    $projectWithTag->update(['publication_status' => PublicationStatus::Published]);
+    $projectWithTag->update(['is_published' => true]);
 
-    $response = $this->get('/projects?focus=' . $focusTag->slug);
+    $response = $this->get('/projects?focus='.$focusTag->slug);
 
     $response->assertSee($projectWithTag->name);
 });
@@ -125,7 +122,7 @@ test('pagination works', function () {
     // Create more than 12 projects (default pagination)
     for ($i = 0; $i < 15; $i++) {
         $project = createProject();
-        $project->update(['publication_status' => PublicationStatus::Published]);
+        $project->update(['is_published' => true]);
     }
 
     $response = $this->get('/projects');
@@ -155,7 +152,7 @@ test('division routes return 200 and show project index', function () {
 
 test('projects index without division shows all projects', function () {
     $project = createProject();
-    $project->update(['publication_status' => PublicationStatus::Published]);
+    $project->update(['is_published' => true]);
 
     $response = $this->get(route('projects.index'));
 
@@ -180,13 +177,10 @@ test('CEM division route filters by CEM sections only', function () {
         'supervisor_id' => $supervisor->id,
         'order_rank' => 1,
     ]);
-    $cemProject->update(['publication_status' => PublicationStatus::Published]);
+    $cemProject->update(['is_published' => true]);
 
     $response = $this->get(route('projects.division.computational-experimental-mechanics'));
 
     $response->assertStatus(200);
     $response->assertSee($cemProject->name);
 });
-
-
-

@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\PublicationStatus;
-use Filament\Notifications\Notification;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
@@ -31,12 +27,12 @@ class Project extends Model
         'richtext_content',
         'project_owner_id',
         'organization_id',
-        'publication_status',
+        'is_published',
         'random_ranking',
     ];
 
     protected $casts = [
-        'publication_status' => PublicationStatus::class,
+        'is_published' => 'boolean',
     ];
 
     protected static function boot()
@@ -62,6 +58,7 @@ class Project extends Model
     {
         $firstSupervisorLink = $this->supervisorLinks->first();
         $firstSupervisor = $firstSupervisorLink ? $firstSupervisorLink->supervisor : null;
+
         return $firstSupervisor && method_exists($firstSupervisor, 'group') ? $firstSupervisor->group?->section : null;
     }
 
@@ -69,6 +66,7 @@ class Project extends Model
     {
         $firstSupervisorLink = $this->supervisorLinks->first();
         $firstSupervisor = $firstSupervisorLink ? $firstSupervisorLink->supervisor : null;
+
         return $firstSupervisor && method_exists($firstSupervisor, 'group') ? $firstSupervisor->group : null;
     }
 
@@ -118,7 +116,7 @@ class Project extends Model
 
     public function getIsTakenAttribute(): bool
     {
-        return !empty($this->student_name) || !empty($this->student_email);
+        return ! empty($this->student_name) || ! empty($this->student_email);
     }
 
     public function scopeAvailable($query)
@@ -146,24 +144,24 @@ class Project extends Model
         $this->load('supervisorLinks.supervisor.group.section');
 
         $firstSupervisorLink = $this->supervisorLinks->first();
-        if (!$firstSupervisorLink) {
+        if (! $firstSupervisorLink) {
             return null;
         }
 
         $supervisor = $firstSupervisorLink->supervisor;
-        if (!$supervisor) {
+        if (! $supervisor) {
             return null;
         }
 
         // Only User supervisors have groups (external supervisors don't)
-        if (!method_exists($supervisor, 'group') || !$supervisor->group) {
+        if (! method_exists($supervisor, 'group') || ! $supervisor->group) {
             return null;
         }
 
         $group = $supervisor->group;
         $section = $group->section;
 
-        if (!$section || !$section->abbrev_id || !$group->abbrev_id) {
+        if (! $section || ! $section->abbrev_id || ! $group->abbrev_id) {
             return null;
         }
 
@@ -171,10 +169,10 @@ class Project extends Model
         $year = $this->created_at ? $this->created_at->format('y') : date('y');
 
         // Build prefix: YY + Section abbrev_id + Group abbrev_id
-        $prefix = $year . $section->abbrev_id . $group->abbrev_id;
+        $prefix = $year.$section->abbrev_id.$group->abbrev_id;
 
         // Find the highest existing project number with this prefix
-        $lastProject = static::where('project_number', 'like', $prefix . '%')
+        $lastProject = static::where('project_number', 'like', $prefix.'%')
             ->orderBy('project_number', 'desc')
             ->first();
 
@@ -189,7 +187,7 @@ class Project extends Model
         }
 
         // Format as 2-digit number with leading zeros
-        $projectNumber = $prefix . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+        $projectNumber = $prefix.str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
 
         // Update the project number
         $this->updateQuietly(['project_number' => $projectNumber]);

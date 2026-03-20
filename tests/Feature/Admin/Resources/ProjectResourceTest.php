@@ -1,16 +1,11 @@
 <?php
 
-use App\Enums\PublicationStatus;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
-use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\Organization;
 use App\Models\Project;
-use App\Models\ProjectSupervisor;
 use App\Models\ProjectType;
-use App\Models\Tag;
-use App\Models\User;
 
 beforeEach(function () {
     seedTestData();
@@ -59,7 +54,7 @@ test('can filter projects by status', function () {
     $availableProject = createProject();
     $takenProject = createProject(['student_name' => 'John Doe']);
     $conceptProject = createProject();
-    $conceptProject->update(['publication_status' => PublicationStatus::Concept]);
+    $conceptProject->update(['is_published' => false]);
 
     livewire(ListProjects::class)
         ->filterTable('status', ['status' => 'available'])
@@ -108,14 +103,14 @@ test('can create project', function () {
     expect(Project::where('name', 'Test Project')->exists())->toBeTrue();
 });
 
-test('can save project as concept', function () {
+test('can create project as draft via is_published checkbox', function () {
     $supervisor = createSupervisor();
     $projectType = ProjectType::where('slug', 'bachelor_thesis')->first();
     $organization = Organization::where('name', 'TU/e')->first() ?? Organization::factory()->create(['name' => 'TU/e']);
 
     livewire(CreateProject::class)
         ->fillForm([
-            'name' => 'Concept Project',
+            'name' => 'Draft Project',
             'types' => [$projectType->id],
             'project_owner_id' => $supervisor->id,
             'organization_id' => $organization->id,
@@ -127,13 +122,13 @@ test('can save project as concept', function () {
                     'supervisor_id' => $supervisor->id,
                 ],
             ],
-            'save_as_concept' => true,
+            'is_published' => false,
         ])
-        ->call('saveAsConcept')
+        ->call('create')
         ->assertHasNoFormErrors();
 
-    $project = Project::where('name', 'Concept Project')->first();
-    expect($project->publication_status)->toBe(PublicationStatus::Concept);
+    $project = Project::where('name', 'Draft Project')->first();
+    expect($project->is_published)->toBeFalse();
 });
 
 test('project number is auto-generated after save', function () {
@@ -228,6 +223,3 @@ test('non-admin cannot delete project', function () {
     livewire(EditProject::class, ['record' => $project->getRouteKey()])
         ->assertActionHidden('delete');
 });
-
-
-
