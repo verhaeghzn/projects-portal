@@ -173,11 +173,25 @@ class ProjectForm
                     ->preload()
                     ->searchable(),
 
-                Checkbox::make('is_published')
-                    ->label('Published')
-                    ->helperText('When checked, the project is visible on the public project pages. Uncheck to keep it as a draft (concept).')
-                    ->default(true)
+                Checkbox::make('save_as_concept')
+                    ->label('Save as concept')
+                    ->helperText('If checked, this project is saved as a draft and will not be visible on the public project pages.')
+                    ->default(false)
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function ($component, $state, $record) {
+                        if ($record?->exists) {
+                            $component->state(! $record->is_published);
+                        }
+                    })
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        $set('is_published', ! (bool) $state);
+                    })
                     ->live(),
+
+                Checkbox::make('is_published')
+                    ->hidden()
+                    ->dehydrated()
+                    ->default(true),
 
                 Section::make('Student Information')
                     ->description('If the project is taken, fill in the student information.')
