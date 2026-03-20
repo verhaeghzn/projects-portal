@@ -14,6 +14,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -173,25 +174,11 @@ class ProjectForm
                     ->preload()
                     ->searchable(),
 
-                Checkbox::make('save_as_concept')
-                    ->label('Save as concept')
-                    ->helperText('If checked, this project is saved as a draft and will not be visible on the public project pages.')
-                    ->default(false)
-                    ->dehydrated(false)
-                    ->afterStateHydrated(function ($component, $state, $record) {
-                        if ($record?->exists) {
-                            $component->state(! $record->is_published);
-                        }
-                    })
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        $set('is_published', ! (bool) $state);
-                    })
+                Toggle::make('is_published')
+                    ->label('Published')
+                    ->helperText('When checked, the project is visible on the public project pages. Uncheck to keep it as a draft (concept).')
+                    ->default(true)
                     ->live(),
-
-                Checkbox::make('is_published')
-                    ->hidden()
-                    ->dehydrated()
-                    ->default(true),
 
                 Section::make('Student Information')
                     ->description('If the project is taken, fill in the student information.')
