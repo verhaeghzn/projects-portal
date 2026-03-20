@@ -168,17 +168,16 @@ class ProjectsTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         if ($data['status'] === 'available') {
-                            return $query->whereNull('student_name')->whereNull('student_email');
+                            return $query->whereNull('student_name')->whereNull('student_email')->where('is_published', true);
+                        }
+                        if ($data['status'] === 'concept') {
+                            return $query->where('is_published', false);
                         }
                         if ($data['status'] === 'taken') {
                             return $query->where(function ($q) {
                                 $q->whereNotNull('student_name')->orWhereNotNull('student_email');
                             });
                         }
-                        if ($data['status'] === 'concept') {
-                            return $query->where('is_published', false);
-                        }
-
                         return $query;
                     }),
             ])
