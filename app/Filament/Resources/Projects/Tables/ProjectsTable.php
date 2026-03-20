@@ -83,10 +83,29 @@ class ProjectsTable
                     })
                     ->searchable(false),
 
-                TextColumn::make('student_name')
-                    ->label('Student')
-                    ->placeholder('Available')
-                    ->searchable(),
+                TextColumn::make('listing_status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Concept' => 'gray',
+                        'Taken' => 'warning',
+                        'Available' => 'success',
+                        default => 'gray',
+                    })
+                    ->getStateUsing(function ($record) {
+                        if (! $record->is_published) {
+                            return 'Concept';
+                        }
+
+                        if ($record->is_taken) {
+                            return 'Taken';
+                        }
+
+                        return 'Available';
+                    })
+                    ->tooltip(fn ($record) => $record->is_taken
+                        ? trim(collect([$record->student_name, $record->student_email])->filter()->join(' · '))
+                        : null),
 
                 TextColumn::make('created_at')
                     ->dateTime()
