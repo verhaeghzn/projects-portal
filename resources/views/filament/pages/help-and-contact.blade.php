@@ -1,4 +1,26 @@
 <x-filament-panels::page>
+    <x-filament::section class="mb-5">
+            <x-slot name="heading">
+                Support
+            </x-slot>
+            <x-slot name="description">
+                For questions about the portal—administrative, staff, or technical
+            </x-slot>
+            <div class="prose max-w-none prose-a:underline">
+                <p class="mb-2">
+                    For questions about the projects portal, including administrative and staff matters, or technical issues, please contact:
+                </p>
+                <div class="space-y-1 mb-4">
+                    <p class="font-semibold text-lg my-5">
+                        Andreas Pollet (<a href="mailto:a.m.a.o.pollet@tue.nl">a.m.a.o.pollet@tue.nl</a>) — main support contact
+                    </p>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    The portal is managed by Andreas Pollet, Joris Remmers and Bart Verhaegh.
+                </p>
+            </div>
+        </x-filament::section>
+
         <x-filament::section class="mb-3"> 
             <x-slot name="heading">
                 About the Portal
@@ -16,26 +38,6 @@
             </div>
         </x-filament::section>
 
-        <x-filament::section>
-            <x-slot name="heading">
-                Support
-            </x-slot>
-            <x-slot name="description">
-                For questions about the portal—administrative, staff, or technical
-            </x-slot>
-            <div class="prose max-w-none prose-a:underline">
-                <p class="mb-2">
-                    For questions about the projects portal, including administrative and staff matters, or technical issues, please contact:
-                </p>
-                <div class="space-y-1 mb-4">
-                    <p class="font-semibold text-lg mb-1">
-                        Andreas Pollet — main support contact
-                    </p>
-                </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                    The portal is managed by Andreas Pollet, Joris Remmers and Bart Verhaegh.
-                </p>
-            </div>
-        </x-filament::section>
+        
 </x-filament-panels::page>
 
