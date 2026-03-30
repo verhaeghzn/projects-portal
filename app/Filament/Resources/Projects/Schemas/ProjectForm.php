@@ -265,6 +265,13 @@ class ProjectForm
                                             if ($selector === 'internal') {
                                                 $linkSupervisorId = $link['supervisor_id'] ?? null;
                                                 if ($linkSupervisorId) {
+                                                    $linkSupervisor = \App\Models\User::find($linkSupervisorId);
+                                                    if ($linkSupervisor?->hasRole('Support colleague')) {
+                                                        $fail('Support colleagues cannot be assigned as supervisors.');
+
+                                                        return;
+                                                    }
+
                                                     $key = User::class.'-'.$linkSupervisorId;
                                                     if (isset($seenInternal[$key])) {
                                                         $fail('Duplicate supervisor detected. The same TU/e supervisor cannot be added multiple times.');
@@ -332,6 +339,7 @@ class ProjectForm
                                 Select::make('supervisor_id')
                                     ->label('TU/e Supervisor')
                                     ->options(fn () => User::query()
+                                        ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'Support colleague'))
                                         ->orderBy('name')
                                         ->pluck('name', 'id')
                                     )

@@ -27,7 +27,7 @@ class OrganizationResource extends Resource
     public static function canAccess(): bool
     {
         $user = Auth::user();
-        return $user?->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher']) ?? false;
+        return $user?->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher', 'Support colleague']) ?? false;
     }
 
     public static function form(Schema $schema): Schema

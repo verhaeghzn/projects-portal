@@ -49,6 +49,7 @@ class ListUsers extends ListRecords
                             'Administrator' => 'Administrator',
                             'Staff member - supervisor' => 'Staff member - supervisor',
                             'Researcher' => 'Researcher',
+                            'Support colleague' => 'Support colleague',
                         ])
                         ->default(['Researcher'])
                         ->required(),

@@ -20,8 +20,9 @@ return new class extends Migration
             $supervisorRole->update(['name' => 'Staff member - supervisor']);
         }
 
-        // Create "Researcher" role
+        // Create "Researcher" and "Support colleague" roles
         $researcher = Role::firstOrCreate(['name' => 'Researcher']);
+        $supportColleague = Role::firstOrCreate(['name' => 'Support colleague']);
 
         // Ensure all necessary permissions exist
         $permissions = [
@@ -43,6 +44,15 @@ return new class extends Migration
             'view projects',
             'create projects',
             'update projects',
+            'manage organizations',
+        ]);
+
+        // Assign permissions to Support colleague
+        $supportColleague->givePermissionTo([
+            'view projects',
+            'create projects',
+            'update projects',
+            'delete projects',
             'manage organizations',
         ]);
 
@@ -79,6 +89,12 @@ return new class extends Migration
         $researcher = Role::where('name', 'Researcher')->first();
         if ($researcher) {
             $researcher->delete();
+        }
+
+        // Delete "Support colleague" role
+        $supportColleague = Role::where('name', 'Support colleague')->first();
+        if ($supportColleague) {
+            $supportColleague->delete();
         }
 
         // Reset cached roles and permissions

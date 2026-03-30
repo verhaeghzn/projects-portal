@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Collection;
 
 class ProjectPolicy
 {
@@ -13,7 +13,7 @@ class ProjectPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher']);
+        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher', 'Support colleague']);
     }
 
     /**
@@ -21,7 +21,7 @@ class ProjectPolicy
      */
     public function view(User $user, Project $project): bool
     {
-        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher']);
+        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher', 'Support colleague']);
     }
 
     /**
@@ -29,7 +29,7 @@ class ProjectPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher']);
+        return $user->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher', 'Support colleague']);
     }
 
     /**
@@ -74,6 +74,12 @@ class ProjectPolicy
                 }
             }
         }
+
+        // Support colleagues can update projects within their division.
+        if ($user->hasRole('Support colleague')) {
+            return $this->sharesDivisionWithProject($user, $project);
+        }
+
         return false;
     }
 
@@ -87,6 +93,10 @@ class ProjectPolicy
             return true;
         }
 
+        if ($user->hasRole('Support colleague')) {
+            return $this->sharesDivisionWithProject($user, $project);
+        }
+
         // Staff member - supervisors can delete their own projects
         if ($user->hasRole('Staff member - supervisor') && $project->project_owner_id === $user->id) {
             return true;
@@ -98,6 +108,49 @@ class ProjectPolicy
         }
 
         return false;
+    }
+
+    private function sharesDivisionWithProject(User $user, Project $project): bool
+    {
+        $userDivisionId = $this->getUserDivisionId($user);
+        if (! $userDivisionId) {
+            return false;
+        }
+
+        return $this->getProjectDivisionIds($project)->contains($userDivisionId);
+    }
+
+    private function getUserDivisionId(User $user): ?int
+    {
+        return $user->group?->section?->division_id;
+    }
+
+    private function getProjectDivisionIds(Project $project): Collection
+    {
+        $project->loadMissing([
+            'owner.group.section',
+            'creator.group.section',
+            'supervisorLinks.supervisor.group.section',
+        ]);
+
+        $divisionIds = collect();
+
+        if ($project->owner?->group?->section?->division_id) {
+            $divisionIds->push($project->owner->group->section->division_id);
+        }
+
+        if ($project->creator?->group?->section?->division_id) {
+            $divisionIds->push($project->creator->group->section->division_id);
+        }
+
+        foreach ($project->supervisorLinks as $supervisorLink) {
+            $supervisor = $supervisorLink->supervisor;
+            if ($supervisor instanceof User && $supervisor->group?->section?->division_id) {
+                $divisionIds->push($supervisor->group->section->division_id);
+            }
+        }
+
+        return $divisionIds->filter()->unique()->values();
     }
 
     /**

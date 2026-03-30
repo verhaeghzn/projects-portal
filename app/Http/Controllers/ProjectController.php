@@ -141,7 +141,7 @@ class ProjectController extends Controller
             ->get();
 
         // Only get internal supervisors (User model)
-        $supervisors = ProjectSupervisor::with(['supervisor'])
+        $supervisors = ProjectSupervisor::with(['supervisor.roles'])
             ->where('supervisor_type', User::class)
             ->whereNotNull('supervisor_id')
             ->get();
@@ -154,10 +154,16 @@ class ProjectController extends Controller
                 'name' => $supervisor->name,
                 'slug' => $slug,
                 'type' => $supervisor->supervisor_type,
+                'is_support_colleague' => $supervisor->supervisor?->hasRole('Support colleague') ?? false,
             ];
         })->filter(function ($supervisor) {
             // Filter out entries without a valid slug
-            return ! empty($supervisor['slug']);
+            return ! empty($supervisor['slug'])
+                && ! $supervisor['is_support_colleague'];
+        })->map(function ($supervisor) {
+            unset($supervisor['is_support_colleague']);
+
+            return $supervisor;
         })->unique('slug')->values();
 
         return view('projects.index', [

@@ -46,6 +46,18 @@ class ProjectSupervisor extends Model
                         ]);
                     }
                 } else {
+                    $internalSupervisor = User::find($projectSupervisor->supervisor_id);
+                    if ($internalSupervisor?->hasRole('Support colleague')) {
+                        Notification::make()
+                            ->title('Error saving supervisor')
+                            ->body('Support colleagues cannot be assigned as supervisors.')
+                            ->danger()
+                            ->send();
+                        throw ValidationException::withMessages([
+                            'supervisorLinks' => 'Support colleagues cannot be assigned as supervisors.',
+                        ]);
+                    }
+
                     // Check for duplicate internal supervisor
                     $exists = $query->where('supervisor_type', $projectSupervisor->supervisor_type)
                         ->where('supervisor_id', $projectSupervisor->supervisor_id)

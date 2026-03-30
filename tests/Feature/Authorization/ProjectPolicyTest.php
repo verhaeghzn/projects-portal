@@ -1,8 +1,9 @@
 <?php
 
-use App\Models\Group;
+use App\Models\Division;
 use App\Models\Project;
 use App\Models\ProjectSupervisor;
+use App\Models\Section;
 use App\Models\User;
 
 beforeEach(function () {
@@ -14,10 +15,12 @@ test('all roles can view any projects', function () {
     $admin = createUserWithRole('Administrator');
     $supervisor = createSupervisor();
     $researcher = createUserWithRole('Researcher');
+    $supportColleague = createUserWithRole('Support colleague');
 
     expect($admin->can('viewAny', Project::class))->toBeTrue();
     expect($supervisor->can('viewAny', Project::class))->toBeTrue();
     expect($researcher->can('viewAny', Project::class))->toBeTrue();
+    expect($supportColleague->can('viewAny', Project::class))->toBeTrue();
 });
 
 test('all roles can view individual projects', function () {
@@ -25,20 +28,24 @@ test('all roles can view individual projects', function () {
     $admin = createUserWithRole('Administrator');
     $supervisor = createSupervisor();
     $researcher = createUserWithRole('Researcher');
+    $supportColleague = createUserWithRole('Support colleague');
 
     expect($admin->can('view', $project))->toBeTrue();
     expect($supervisor->can('view', $project))->toBeTrue();
     expect($researcher->can('view', $project))->toBeTrue();
+    expect($supportColleague->can('view', $project))->toBeTrue();
 });
 
 test('all roles can create projects', function () {
     $admin = createUserWithRole('Administrator');
     $supervisor = createSupervisor();
     $researcher = createUserWithRole('Researcher');
+    $supportColleague = createUserWithRole('Support colleague');
 
     expect($admin->can('create', Project::class))->toBeTrue();
     expect($supervisor->can('create', Project::class))->toBeTrue();
     expect($researcher->can('create', Project::class))->toBeTrue();
+    expect($supportColleague->can('create', Project::class))->toBeTrue();
 });
 
 test('administrator can update all projects', function () {
@@ -89,15 +96,71 @@ test('researcher can update projects owned by group leader', function () {
     expect($researcher->can('update', $project))->toBeTrue();
 });
 
-test('only administrator can delete projects', function () {
+test('administrator and in-division support colleague can delete projects', function () {
     $admin = createUserWithRole('Administrator');
     $supervisor = createSupervisor();
     $researcher = createUserWithRole('Researcher');
+    $supportColleague = createUserWithRole('Support colleague');
     $project = createProject();
 
     expect($admin->can('delete', $project))->toBeTrue();
     expect($supervisor->can('delete', $project))->toBeFalse();
     expect($researcher->can('delete', $project))->toBeFalse();
+    expect($supportColleague->can('delete', $project))->toBeFalse();
+});
+
+test('support colleague can update and delete projects in their division', function () {
+    $division = Division::create(['name' => 'Division One']);
+    $section = Section::factory()->create(['division_id' => $division->id]);
+    $supportGroup = createGroup(['section_id' => $section->id]);
+    $supportColleague = createUserWithRole('Support colleague', ['group_id' => $supportGroup->id]);
+
+    $projectSupervisor = createSupervisor();
+    $projectSupervisorGroup = createGroup(['section_id' => $section->id]);
+    $projectSupervisor->update(['group_id' => $projectSupervisorGroup->id]);
+
+    $project = createProject(['project_owner_id' => $projectSupervisor->id]);
+    $project->supervisorLinks()->delete();
+    ProjectSupervisor::create([
+        'project_id' => $project->id,
+        'supervisor_type' => User::class,
+        'supervisor_id' => $projectSupervisor->id,
+        'order_rank' => 1,
+    ]);
+
+    $freshProject = $project->fresh();
+
+    expect($supportColleague->can('update', $freshProject))->toBeTrue();
+    expect($supportColleague->can('delete', $freshProject))->toBeTrue();
+});
+
+test('support colleague cannot update or delete projects outside their division', function () {
+    $supportDivision = Division::create(['name' => 'Support Division']);
+    $otherDivision = Division::create(['name' => 'Other Division']);
+
+    $supportSection = Section::factory()->create(['division_id' => $supportDivision->id]);
+    $otherSection = Section::factory()->create(['division_id' => $otherDivision->id]);
+
+    $supportGroup = createGroup(['section_id' => $supportSection->id]);
+    $supportColleague = createUserWithRole('Support colleague', ['group_id' => $supportGroup->id]);
+
+    $projectSupervisor = createSupervisor();
+    $projectSupervisorGroup = createGroup(['section_id' => $otherSection->id]);
+    $projectSupervisor->update(['group_id' => $projectSupervisorGroup->id]);
+
+    $project = createProject(['project_owner_id' => $projectSupervisor->id]);
+    $project->supervisorLinks()->delete();
+    ProjectSupervisor::create([
+        'project_id' => $project->id,
+        'supervisor_type' => User::class,
+        'supervisor_id' => $projectSupervisor->id,
+        'order_rank' => 1,
+    ]);
+
+    $freshProject = $project->fresh();
+
+    expect($supportColleague->can('update', $freshProject))->toBeFalse();
+    expect($supportColleague->can('delete', $freshProject))->toBeFalse();
 });
 
 test('only administrator can restore projects', function () {

@@ -110,6 +110,7 @@ function seedTestData(): void
     Role::firstOrCreate(['name' => 'Administrator']);
     Role::firstOrCreate(['name' => 'Staff member - supervisor']);
     Role::firstOrCreate(['name' => 'Researcher']);
+    Role::firstOrCreate(['name' => 'Support colleague']);
 
     // Create project types
     ProjectType::firstOrCreate(

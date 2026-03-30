@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
         $administrator = Role::firstOrCreate(['name' => 'Administrator']);
         $staffSupervisor = Role::firstOrCreate(['name' => 'Staff member - supervisor']);
         $researcher = Role::firstOrCreate(['name' => 'Researcher']);
+        $supportColleague = Role::firstOrCreate(['name' => 'Support colleague']);
 
         // Create permissions
         $permissions = [
@@ -55,6 +56,15 @@ class RolePermissionSeeder extends Seeder
             'view projects',
             'create projects',
             'update projects',
+            'manage organizations',
+        ]);
+
+        // Assign permissions to Support colleague
+        $supportColleague->givePermissionTo([
+            'view projects',
+            'create projects',
+            'update projects',
+            'delete projects',
             'manage organizations',
         ]);
     }
