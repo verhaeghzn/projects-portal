@@ -143,8 +143,20 @@ class ProjectController extends Controller
         // Only get internal supervisors (User model)
         $supervisors = ProjectSupervisor::with(['supervisor.roles'])
             ->where('supervisor_type', User::class)
-            ->whereNotNull('supervisor_id')
-            ->get();
+            ->whereNotNull('supervisor_id');
+
+        if ($selectedDivision && ! empty($selectedDivision['section_slugs'])) {
+            $divisionSectionSlugs = $selectedDivision['section_slugs'];
+            $supervisors->whereIn('supervisor_id', function ($subQ) use ($divisionSectionSlugs) {
+                $subQ->select('users.id')
+                    ->from('users')
+                    ->join('groups', 'users.group_id', '=', 'groups.id')
+                    ->join('sections', 'groups.section_id', '=', 'sections.id')
+                    ->whereIn('sections.slug', $divisionSectionSlugs);
+            });
+        }
+
+        $supervisors = $supervisors->get();
         $supervisors = $supervisors->map(function ($supervisor) {
             // Use the user's slug for internal supervisors
             $slug = $supervisor->supervisor?->slug ?? '';
