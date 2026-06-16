@@ -113,9 +113,15 @@ class SamlController extends Controller
         $responseCerts = SurfIdpCertificateLoader::certificatesFromSamlResponse(
             $request->input('SAMLResponse')
         );
+        $assertionCerts = SurfIdpCertificateLoader::certificatesFromAssertionSignature(
+            $request->input('SAMLResponse')
+        );
 
         if ($responseCerts !== [] || $trusted !== []) {
-            $merged = SurfIdpCertificateLoader::mergeWithResponseCerts($trusted, $responseCerts);
+            $merged = SurfIdpCertificateLoader::mergeWithResponseCerts(
+                $trusted,
+                $assertionCerts !== [] ? $assertionCerts : $responseCerts,
+            );
             unset(
                 $settings['idp']['certFingerprint'],
                 $settings['idp']['certFingerprintAlgorithm'],
@@ -130,18 +136,27 @@ class SamlController extends Controller
             }
 
             $trustedFps = SurfIdpCertificateLoader::trustedFingerprints($trusted);
-            $validatedResponse = SurfIdpCertificateLoader::filterResponseCertsByTrustedFingerprints(
-                $responseCerts,
-                $trustedFps,
+            $assertionFps = SurfIdpCertificateLoader::fingerprintsFromAssertionSignature(
+                $request->input('SAMLResponse')
             );
+            $rollover = SurfIdpCertificateLoader::detectsKeyRollover($assertionFps, $trustedFps);
 
             Log::debug('SAML ACS: IdP signing certs for validation', [
                 'trusted_source' => SurfIdpCertificateLoader::lastSource(),
                 'trusted_fps' => array_map(fn (string $fp) => substr($fp, 0, 16), $trustedFps),
-                'response_count' => count($responseCerts),
-                'response_matched_count' => count($validatedResponse),
+                'assertion_signing_fps' => $assertionFps,
+                'response_cert_count' => count($responseCerts),
                 'merged_count' => count($merged['x509certMulti']['signing'] ?? array_filter([$merged['x509cert'] ?? ''])),
+                'idp_key_rollover_detected' => $rollover,
             ]);
+
+            if ($rollover) {
+                Log::warning('SAML ACS: Assertion signed with cert not in SURF metadata — using response KeyInfo cert', [
+                    'assertion_signing_fps' => $assertionFps,
+                    'metadata_fps' => array_map(fn (string $fp) => substr($fp, 0, 16), $trustedFps),
+                    'metadata_url' => config('saml.surf.metadata_url'),
+                ]);
+            }
         }
 
         $hasIdpCert = ! empty($settings['idp']['x509cert'])
@@ -281,7 +296,8 @@ class SamlController extends Controller
     {
         $keys = [
             'ref', 'at', 'stage', 'guard', 'codes', 'error',
-            'idp_cert_source', 'idp_cert_fp', 'trusted_cert_fps', 'response_cert_fps',
+            'idp_cert_source', 'idp_cert_fp', 'trusted_cert_fps',
+            'assertion_signing_cert_fps', 'response_cert_fps',
             'acs_url', 'return',
         ];
 
@@ -299,11 +315,13 @@ class SamlController extends Controller
         $trusted = SurfIdpCertificateLoader::load();
         $trustedFps = SurfIdpCertificateLoader::trustedFingerprints($trusted);
         $responseCerts = SurfIdpCertificateLoader::certificatesFromSamlResponse($samlResponse);
+        $assertionCerts = SurfIdpCertificateLoader::certificatesFromAssertionSignature($samlResponse);
+        $assertionCertFps = SurfIdpCertificateLoader::fingerprintsFromAssertionSignature($samlResponse);
         $validatedResponse = SurfIdpCertificateLoader::filterResponseCertsByTrustedFingerprints(
             $responseCerts,
             $trustedFps,
         );
-        $merged = SurfIdpCertificateLoader::mergeWithResponseCerts($trusted, $responseCerts);
+        $merged = SurfIdpCertificateLoader::mergeWithResponseCerts($trusted, $assertionCerts !== [] ? $assertionCerts : $responseCerts);
         $mergedSigning = $merged['x509certMulti']['signing'] ?? array_values(array_filter([$merged['x509cert'] ?? '']));
 
         $configuredIdpCert = '';
@@ -339,6 +357,8 @@ class SamlController extends Controller
             'trusted_cert_fps' => SurfIdpCertificateLoader::shortFingerprints($trustedFps),
             'configured_idp_cert_fps' => SurfIdpCertificateLoader::shortFingerprints($configuredIdpFps),
             'response_cert_fps' => SurfIdpCertificateLoader::fingerprintsFromSamlResponse($samlResponse),
+            'assertion_signing_cert_fps' => $assertionCertFps,
+            'idp_key_rollover_detected' => SurfIdpCertificateLoader::detectsKeyRollover($assertionCertFps, $trustedFps),
             'response_cert_count' => count($responseCerts),
             'response_matched_count' => count($validatedResponse),
             'merged_cert_count' => count($mergedSigning),

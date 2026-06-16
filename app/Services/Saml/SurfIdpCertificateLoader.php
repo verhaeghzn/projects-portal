@@ -377,6 +377,57 @@ class SurfIdpCertificateLoader
     }
 
     /**
+     * Certs embedded in SAML assertion signatures (what SURF actually signs with).
+     *
+     * @return string[]
+     */
+    public static function certificatesFromAssertionSignature(?string $samlResponse): array
+    {
+        if ($samlResponse === null || $samlResponse === '') {
+            return [];
+        }
+
+        $xml = base64_decode($samlResponse, true);
+        if ($xml === false || $xml === '') {
+            return [];
+        }
+
+        $doc = new \DOMDocument();
+        if (! @$doc->loadXML($xml)) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath($doc);
+        $xpath->registerNamespace('saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
+        $xpath->registerNamespace('samlp', 'urn:oasis:names:tc:SAML:2.0:protocol');
+        $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+
+        $certs = [];
+        foreach ([
+            '//saml:Assertion/ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate',
+            '/samlp:Response/ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate',
+        ] as $query) {
+            $nodes = $xpath->query($query);
+            for ($i = 0; $i < $nodes->length; $i++) {
+                $certs[] = Utils::formatCert($nodes->item($i)->nodeValue, false);
+            }
+        }
+
+        return self::deduplicateCerts($certs);
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function fingerprintsFromAssertionSignature(?string $samlResponse): array
+    {
+        return array_values(array_unique(array_map(
+            fn (string $cert) => (string) self::fingerprintShort($cert),
+            self::certificatesFromAssertionSignature($samlResponse),
+        )));
+    }
+
+    /**
      * @return string[]
      */
     public static function certificatesFromSamlResponse(?string $samlResponse): array
@@ -489,14 +540,36 @@ class SurfIdpCertificateLoader
     {
         $trustedSigning = $trusted['x509certMulti']['signing']
             ?? array_values(array_filter([$trusted['x509cert'] ?? '']));
-        $trustedFps = self::trustedFingerprints($trusted);
 
-        $validatedResponse = self::filterResponseCertsByTrustedFingerprints($responseCerts, $trustedFps);
-
-        // Prefer exact cert bytes from the response (avoids PEM formatting mismatches).
-        $merged = array_merge($validatedResponse, $trustedSigning);
+        // Response KeyInfo carries the key that signed the assertion. During SURF key
+        // rollover the signing cert may not yet appear in idp-metadata.xml — always include
+        // response certs for validation, then fall back to metadata certs.
+        $merged = array_merge($responseCerts, $trustedSigning);
 
         return self::certsToIdpConfig(self::deduplicateCerts($merged));
+    }
+
+    /**
+     * True when assertion signing cert fingerprint is absent from metadata-trusted certs.
+     *
+     * @param  string[]  $assertionCertFps  short (16-char) fingerprints
+     * @param  string[]  $trustedFps  full SHA-256 fingerprints
+     */
+    public static function detectsKeyRollover(array $assertionCertFps, array $trustedFps): bool
+    {
+        if ($assertionCertFps === []) {
+            return false;
+        }
+
+        $trustedShort = self::shortFingerprints($trustedFps);
+
+        foreach ($assertionCertFps as $fp) {
+            if (! in_array($fp, $trustedShort, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

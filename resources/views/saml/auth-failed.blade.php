@@ -37,7 +37,8 @@
                     'idp_cert_source' => 'Cert source',
                     'idp_cert_fp' => 'Configured FP',
                     'trusted_cert_fps' => 'Trusted FP(s)',
-                    'response_cert_fps' => 'Response FP(s)',
+                    'assertion_signing_cert_fps' => 'Assertion FP(s)',
+                    'response_cert_fps' => 'All response FP(s)',
                     'acs_url' => 'ACS URL',
                     'return' => 'Return URL',
                 ] as $key => $label)
