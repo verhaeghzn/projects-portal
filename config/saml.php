@@ -10,6 +10,18 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | SAML Enabled
+    |--------------------------------------------------------------------------
+    |
+    | Set SAML_ENABLED=true/false to force SAML on or off. When unset, SAML is
+    | auto-detected: enabled only when SP certificates exist (php artisan saml:install).
+    |
+    */
+
+    'enabled' => env('SAML_ENABLED'),
+
     'surf' => [
         'entity_id' => env('SURF_ENTITY_ID', 'https://engine.surfconext.nl/authentication/idp/metadata'),
         'sso_url' => env('SURF_SSO_URL', 'https://engine.surfconext.nl/authentication/idp/single-sign-on'),
@@ -132,4 +144,16 @@ return [
         'students' => 'students',
         'admin' => 'web',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Require SAML Login for Public Pages
+    |--------------------------------------------------------------------------
+    |
+    | When true, public routes redirect unauthenticated visitors to SURFconext.
+    | When false, the site remains public while SAML metadata stays available.
+    |
+    */
+
+    'require_login' => env('SAML_REQUIRE_LOGIN', true),
 ];

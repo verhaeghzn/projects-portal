@@ -64,7 +64,7 @@ class ProjectsTable
                                 // Otherwise, generate an SVG data URL with the initial
                                 $initial = strtoupper(substr($supervisor->name, 0, 1));
                                 $svg = sprintf(
-                                    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#7fabc9"/><text x="20" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="white" text-anchor="middle" dominant-baseline="central">%s</text></svg>',
+                                    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#C72026"/><text x="20" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="white" text-anchor="middle" dominant-baseline="central">%s</text></svg>',
                                     htmlspecialchars($initial)
                                 );
 

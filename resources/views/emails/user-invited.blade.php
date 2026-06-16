@@ -6,7 +6,7 @@
     <title>Welcome to TU/e Projects Portal</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #333;
             max-width: 600px;
@@ -21,7 +21,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .header {
-            background: linear-gradient(135deg, #C8102E 0%, #A00D24 100%);
+            background: linear-gradient(135deg, #C72026 0%, #A01A1F 100%);
             padding: 40px 30px;
             text-align: center;
         }
@@ -35,7 +35,7 @@
             padding: 40px 30px;
         }
         .content h2 {
-            color: #C8102E;
+            color: #C72026;
             margin-top: 0;
             font-size: 24px;
         }
@@ -51,7 +51,7 @@
         .button {
             display: inline-block;
             padding: 14px 32px;
-            background-color: #C8102E;
+            background-color: #C72026;
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 6px;
@@ -60,7 +60,7 @@
             transition: background-color 0.3s;
         }
         .button:hover {
-            background-color: #A00D24;
+            background-color: #A01A1F;
         }
         .footer {
             background-color: #f8f8f8;

@@ -204,6 +204,18 @@ class SamlController extends Controller
     }
 
     /**
+     * Redirect to SAML login with an error flag (avoids SURF redirect loops on ACS failure).
+     */
+    protected function redirectToAuthFailed(string $guard, string $returnUrl): RedirectResponse
+    {
+        return redirect()->route('saml.login', [
+            'guard' => $guard,
+            'return' => $returnUrl,
+            'auth_failed' => 1,
+        ]);
+    }
+
+    /**
      * Redirect to admin login with a Filament notification so the message is visible on the login page.
      */
     protected function redirectToAdminLoginWithError(string $message): RedirectResponse
@@ -246,9 +258,24 @@ class SamlController extends Controller
     public function login(Request $request)
     {
         $this->ensureSamlEnabled();
-        
+
         $guard = $request->get('guard', 'students');
         $returnUrl = $request->get('return', '/');
+
+        if ($request->boolean('auth_failed')) {
+            return response(
+                'Authentication failed. Please try again or contact support if the problem persists.',
+                403
+            );
+        }
+
+        // Already logged in locally – skip IdP to prevent SURF redirect loops
+        if ($guard === 'students' && Auth::guard('students')->check()) {
+            return redirect($returnUrl);
+        }
+        if ($guard === 'web' && Auth::guard('web')->check() && ! $request->filled('link_token')) {
+            return redirect($returnUrl ?: '/admin');
+        }
 
         // Store in session as fallback (in case RelayState is not echoed back by IdP)
         session(['saml_return_url' => $returnUrl, 'saml_guard' => $guard]);
@@ -259,18 +286,28 @@ class SamlController extends Controller
 
         try {
             $samlAuth = $this->getSamlAuth($guard);
-            $samlAuth->login($relayState);
 
-            // Store the request ID for validation in ACS
+            // stay=true: return the IdP URL instead of header()+exit(), so Laravel can persist the session
+            $idpUrl = $samlAuth->login($relayState, [], false, false, true);
+
             $requestId = $samlAuth->getLastRequestID();
             if ($requestId) {
                 session(['saml_request_id' => $requestId]);
                 Log::debug('SAML login initiated with request ID: ' . $requestId);
             }
+
+            session()->save();
+
+            return redirect()->away($idpUrl);
         } catch (\Exception $e) {
             Log::error('SAML login error: ' . $e->getMessage());
             Log::error('SAML login error trace: ' . $e->getTraceAsString());
-            return redirect('/')->with('error', 'Authentication failed. Please try again.');
+
+            return redirect()->route('saml.login', [
+                'guard' => $guard,
+                'return' => $returnUrl,
+                'auth_failed' => 1,
+            ]);
         }
     }
 
@@ -385,11 +422,11 @@ class SamlController extends Controller
                     }
                 }
                 
-                return redirect('/')->with('error', 'Authentication failed. Please try again.');
+                return $this->redirectToAuthFailed($guard, $returnUrl);
             }
 
             if (!$samlAuth->isAuthenticated()) {
-                return redirect('/')->with('error', 'Authentication failed. Please try again.');
+                return $this->redirectToAuthFailed($guard, $returnUrl);
             }
 
             // Extract attributes
@@ -409,7 +446,8 @@ class SamlController extends Controller
 
             if (empty($persistentId)) {
                 Log::error('SAML: No persistent ID found in response');
-                return redirect('/')->with('error', 'Authentication failed: Missing user identifier.');
+
+                return $this->redirectToAuthFailed($guard, $returnUrl);
             }
 
             // Link mode: connect SURF identity to the already-logged-in user (no email needed)
@@ -442,7 +480,8 @@ class SamlController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('SAML ACS error: ' . $e->getMessage());
-            return redirect('/')->with('error', 'Authentication failed. Please try again.');
+
+            return $this->redirectToAuthFailed($guard ?? 'students', $returnUrl ?? '/');
         }
     }
 
@@ -457,6 +496,7 @@ class SamlController extends Controller
 
         // Clear SAML session data
         session()->forget(['saml_return_url', 'saml_guard', 'saml_request_id']);
+        session()->save();
 
         return redirect($returnUrl);
     }

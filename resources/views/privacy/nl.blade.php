@@ -10,7 +10,7 @@
             Laatst bijgewerkt: {{ date('j F Y') }}
         </p>
         <div class="mb-4">
-            <a href="{{ route('privacy', ['lang' => 'en']) }}" class="text-sm text-[#7fabc9] hover:underline">
+            <a href="{{ route('privacy', ['lang' => 'en']) }}" class="text-sm link-primary">
                 Read this page in English
             </a>
         </div>
