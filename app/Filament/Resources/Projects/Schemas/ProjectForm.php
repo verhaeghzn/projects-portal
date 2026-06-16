@@ -16,8 +16,10 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\Auth;
 
 class ProjectForm
@@ -118,12 +120,22 @@ class ProjectForm
                         },
                     ]),
 
-                Textarea::make('short_description')
-                    ->label('Short Description')
-                    ->helperText('One or two sentences about the project. This will be displayed on the project list page.')
-                    ->required()
-                    ->rows(3)
-                    ->maxLength(500),
+                Grid::make(2)
+                    ->columnSpanFull()
+                    ->schema([
+                        Textarea::make('short_description')
+                            ->label('Short Description')
+                            ->helperText('One or two sentences about the project. This will be displayed on the project list page.')
+                            ->required()
+                            ->rows(3)
+                            ->maxLength(500),
+
+                        Toggle::make('is_published')
+                            ->label('Published')
+                            ->helperText('When checked, the project is visible on the public project pages. Uncheck to keep it as a draft (concept).')
+                            ->default(true)
+                            ->live(),
+                    ]),
 
                 RichEditor::make('richtext_content')
                     ->label('Content')
@@ -149,7 +161,7 @@ class ProjectForm
 
                 Select::make('tags')
                     ->label('Tags')
-                    ->beforeLabel(SuggestProjectTagsAction::make())
+                    ->afterLabel(SuggestProjectTagsAction::make())
                     ->relationship(
                         'tags',
                         'name',
@@ -171,16 +183,10 @@ class ProjectForm
                     )
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record?->name.' ('.$record?->category?->value.')')
                     ->helperText("Do you really miss a tag? Please let us know, we'll add it as soon as possible.")
-                    ->columnSpanFull()
+                    ->maxWidth(Width::Large)
                     ->multiple()
                     ->preload()
                     ->searchable(),
-
-                Toggle::make('is_published')
-                    ->label('Published')
-                    ->helperText('When checked, the project is visible on the public project pages. Uncheck to keep it as a draft (concept).')
-                    ->default(true)
-                    ->live(),
 
                 Section::make('Student Information')
                     ->description('If the project is taken, fill in the student information.')
