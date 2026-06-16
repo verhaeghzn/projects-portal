@@ -137,16 +137,23 @@ class SamlController extends Controller
 
         // Load IdP certificate(s) from SURF metadata (cached) or local PEM file
         $idpCerts = SurfIdpCertificateLoader::load();
-        if (! empty($idpCerts['x509cert'])) {
-            $config['idp']['x509cert'] = $idpCerts['x509cert'];
-        }
-        if (! empty($idpCerts['x509certMulti'])) {
+
+        if (! empty($idpCerts['x509certMulti']['signing']) && count($idpCerts['x509certMulti']['signing']) > 1) {
             $config['idp']['x509certMulti'] = $idpCerts['x509certMulti'];
+            $config['idp']['x509cert'] = $idpCerts['x509cert'] ?? '';
+        } elseif (! empty($idpCerts['certFingerprint'])) {
+            // Pin via SHA-256 fingerprint; validate using cert embedded in SAML response KeyInfo
+            $config['idp']['certFingerprint'] = $idpCerts['certFingerprint'];
+            $config['idp']['certFingerprintAlgorithm'] = $idpCerts['certFingerprintAlgorithm'] ?? 'sha256';
+            $config['idp']['x509cert'] = '';
+            unset($config['idp']['x509certMulti']);
+        } elseif (! empty($idpCerts['x509cert'])) {
+            $config['idp']['x509cert'] = $idpCerts['x509cert'];
         } elseif (! empty($config['idp']['x509cert'])) {
             $config['idp']['x509cert'] = $this->normalizeCertificate($config['idp']['x509cert']);
         }
 
-        if (empty($config['idp']['x509cert'])) {
+        if (empty($config['idp']['x509cert']) && empty($config['idp']['certFingerprint']) && empty($config['idp']['x509certMulti'])) {
             Log::error('SAML SURF IdP certificate could not be loaded. Run: php artisan saml:install --refresh-surf');
         }
 
@@ -193,6 +200,8 @@ class SamlController extends Controller
      */
     protected function redirectToAuthFailed(string $guard, string $returnUrl, ?string $error = null, array $extra = []): RedirectResponse
     {
+        $idpCerts = SurfIdpCertificateLoader::load();
+
         $diagnostics = array_merge([
             'ref' => strtoupper(bin2hex(random_bytes(4))),
             'at' => now()->utc()->format('Y-m-d H:i:s') . ' UTC',
@@ -203,9 +212,9 @@ class SamlController extends Controller
             'acs_url' => config('saml.sp.acs_url'),
             'entity_id' => config('saml.sp.entity_id'),
             'app_url' => config('app.url'),
-            'idp_cert_fp' => SurfIdpCertificateLoader::fingerprint(
-                (string) (SurfIdpCertificateLoader::load()['x509cert'] ?? '')
-            ),
+            'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
+            'idp_cert_fp' => substr((string) ($idpCerts['certFingerprint'] ?? ''), 0, 16)
+                ?: SurfIdpCertificateLoader::fingerprintShort((string) ($idpCerts['x509cert'] ?? '')),
         ], $extra);
 
         session(['saml_last_diagnostics' => $diagnostics]);
@@ -458,6 +467,9 @@ class SamlController extends Controller
                 
                 return $this->redirectToAuthFailed($guard, $returnUrl, $errorReason ?: implode(', ', $errors), [
                     'codes' => $errors,
+                    'response_cert_fps' => SurfIdpCertificateLoader::fingerprintsFromSamlResponse(
+                        $request->input('SAMLResponse')
+                    ),
                 ]);
             }
 

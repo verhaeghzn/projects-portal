@@ -27,6 +27,10 @@ return [
         'sso_url' => env('SURF_SSO_URL', 'https://engine.surfconext.nl/authentication/idp/single-sign-on'),
         'slo_url' => env('SURF_SLO_URL', 'https://engine.surfconext.nl/authentication/idp/single-logout'),
         'metadata_url' => env('SURF_METADATA_URL', 'https://metadata.surfconext.nl/idp-metadata.xml'),
+        'assertion_signing_cert_url' => env(
+            'SURF_ASSERTION_SIGNING_CERT_URL',
+            'https://metadata.surfconext.nl/engine.surfconext.nl-20230503.pem'
+        ),
         'public_cert_path' => env('SURF_PUBLIC_CERT_PATH', storage_path('app/saml/surf_public.crt')),
     ],
 

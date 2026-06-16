@@ -12,18 +12,43 @@ class SurfIdpCertificateLoader
     /**
      * Load SURF IdP signing certificate(s) for SAML response validation.
      *
-     * @return array{x509cert?: string, x509certMulti?: array{signing: string[]}}
+     * @return array{
+     *     x509cert?: string,
+     *     x509certMulti?: array{signing: string[]},
+     *     certFingerprint?: string,
+     *     certFingerprintAlgorithm?: string,
+     *     source?: string
+     * }
      */
     public static function load(): array
     {
+        self::$lastSource = 'none';
+
         $fromMetadata = self::loadFromMetadata();
 
         if ($fromMetadata !== null) {
-            return $fromMetadata;
+            self::$lastSource = 'metadata';
+
+            return self::withFingerprint($fromMetadata);
         }
 
-        return self::loadFromFile();
+        $fromFile = self::loadFromFile();
+
+        if ($fromFile !== []) {
+            self::$lastSource = 'file';
+
+            return self::withFingerprint($fromFile);
+        }
+
+        return [];
     }
+
+    public static function lastSource(): string
+    {
+        return self::$lastSource;
+    }
+
+    private static string $lastSource = 'none';
 
     public static function clearCache(): void
     {
@@ -72,7 +97,74 @@ class SurfIdpCertificateLoader
             throw new \RuntimeException('No signing certificate found in SURF metadata');
         }
 
-        return self::normalizeIdpCerts($idp);
+        $certs = self::normalizeIdpCerts($idp);
+
+        return self::mergeWithAssertionSigningCert($certs);
+    }
+
+    /**
+     * Also fetch SURF's dedicated assertion signing PEM (can differ during key rollover).
+     *
+     * @param  array{x509cert?: string, x509certMulti?: array{signing: string[]}}  $certs
+     * @return array{x509cert?: string, x509certMulti?: array{signing: string[]}}
+     */
+    protected static function mergeWithAssertionSigningCert(array $certs): array
+    {
+        $pemUrl = (string) config('saml.surf.assertion_signing_cert_url');
+        if ($pemUrl === '') {
+            return $certs;
+        }
+
+        try {
+            $ch = curl_init($pemUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+            $pem = curl_exec($ch);
+            if ($pem === false) {
+                throw new \RuntimeException(curl_error($ch));
+            }
+
+            $extra = self::parsePemCertificates($pem);
+            $existing = $certs['x509certMulti']['signing'] ?? [$certs['x509cert'] ?? ''];
+            $merged = array_values(array_unique(array_merge($existing, $extra)));
+
+            return self::certsToIdpConfig($merged);
+        } catch (\Throwable $e) {
+            Log::warning('SAML: Could not load SURF assertion signing PEM', [
+                'url' => $pemUrl,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $certs;
+        }
+    }
+
+    /**
+     * @param  array{x509cert?: string, x509certMulti?: array{signing: string[]}}  $certs
+     * @return array{
+     *     x509cert?: string,
+     *     x509certMulti?: array{signing: string[]},
+     *     certFingerprint?: string,
+     *     certFingerprintAlgorithm?: string
+     * }
+     */
+    protected static function withFingerprint(array $certs): array
+    {
+        $primary = $certs['x509cert'] ?? $certs['x509certMulti']['signing'][0] ?? null;
+
+        if ($primary !== null && $primary !== '') {
+            $certs['certFingerprint'] = Utils::calculateX509Fingerprint(
+                Utils::formatCert($primary, true),
+                'sha256',
+            );
+            $certs['certFingerprintAlgorithm'] = 'sha256';
+        }
+
+        return $certs;
     }
 
     /**
@@ -219,15 +311,59 @@ class SurfIdpCertificateLoader
     /**
      * Short SHA-256 fingerprint for diagnostics (first 16 hex chars).
      */
+    public static function fingerprintShort(string $cert): ?string
+    {
+        $fp = self::fingerprint($cert);
+
+        return $fp !== null ? substr($fp, 0, 16) : null;
+    }
+
+    /**
+     * Full lowercase SHA-256 fingerprint (php-saml format).
+     */
     public static function fingerprint(string $cert): ?string
     {
         if ($cert === '') {
             return null;
         }
 
-        $pem = Utils::formatCert($cert, true);
-        $fp = openssl_x509_fingerprint($pem, 'sha256');
+        return Utils::calculateX509Fingerprint(Utils::formatCert($cert, true), 'sha256');
+    }
 
-        return $fp !== false ? substr($fp, 0, 16) : null;
+    /**
+     * Extract SHA-256 fingerprints of all X509 certs embedded in a SAML response.
+     *
+     * @return string[]
+     */
+    public static function fingerprintsFromSamlResponse(?string $samlResponse): array
+    {
+        if ($samlResponse === null || $samlResponse === '') {
+            return [];
+        }
+
+        $xml = base64_decode($samlResponse, true);
+        if ($xml === false || $xml === '') {
+            return [];
+        }
+
+        $doc = new \DOMDocument();
+        if (! @$doc->loadXML($xml)) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath($doc);
+        $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+        $nodes = $xpath->query('//ds:X509Certificate');
+        $fps = [];
+
+        for ($i = 0; $i < $nodes->length; $i++) {
+            $pem = Utils::formatCert($nodes->item($i)->nodeValue, true);
+            $fp = Utils::calculateX509Fingerprint($pem, 'sha256');
+            if ($fp !== null) {
+                $fps[] = substr($fp, 0, 16);
+            }
+        }
+
+        return array_values(array_unique($fps));
     }
 }

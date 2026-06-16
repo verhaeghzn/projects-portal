@@ -34,6 +34,9 @@
                     'guard' => 'Guard',
                     'codes' => 'Codes',
                     'error' => 'Error',
+                    'idp_cert_source' => 'Cert source',
+                    'idp_cert_fp' => 'Configured FP',
+                    'response_cert_fps' => 'Response FP(s)',
                     'acs_url' => 'ACS URL',
                     'return' => 'Return URL',
                 ] as $key => $label)
