@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\User;
+use Filament\Notifications\Notification;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Log;
 
@@ -57,5 +58,11 @@ class ConnectPendingSurfId
         Log::info('SAML Link: Connected pending SURF identity after password login.', [
             'user_id' => $user->getKey(),
         ]);
+
+        Notification::make()
+            ->title('Single Sign-On (SSO) connected')
+            ->body('Your SURF Conext account is now linked. Next time you can sign in with SSO.')
+            ->success()
+            ->send();
     }
 }
