@@ -244,6 +244,7 @@ class ProjectController extends Controller
             'selectedThesisType' => $selectedThesisType,
             'manualBrowse' => $manualBrowse,
             'manualBrowseUrl' => $manualBrowseUrl,
+            'searchSuggestions' => Division::searchSuggestionsFor(data_get($selectedDivision, 'slug')),
             'hideFooter' => ! $manualBrowse,
         ]);
     }

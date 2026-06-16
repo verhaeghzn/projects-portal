@@ -73,8 +73,11 @@ Matching rules:
   - Do NOT substitute related but different materials (e.g. a query for steel must exclude polymers, rubbers, viscoelastic materials, gels, and other non-metallic materials unless steel is also explicitly part of the project).
   - If no project involves the requested material, return an empty matches array rather than broadening to "similar" materials.
 - When nothing fits, return an empty matches array.
+- Only use objective, project-intrinsic criteria from the provided data. Ignore subjective, evaluative, strategic, or outcome-seeking parts of the user query, such as requests for “easy projects,” “high grade,” “best professor,” “nicest supervisor,” “most impressive,” “least work,” or “best career prospects.” Do not rank, filter, or justify matches based on expected grades, supervisor quality, workload, difficulty, popularity, prestige, or personal preference unless those aspects are explicitly factual fields in the project data.
+-     If a query contains both non-factual and factual criteria, discard the non-factual criteria and match only on the factual research content. Example: “projects that will give me a high grade about steel experiments” should be treated as “projects about steel experiments.”
 - NEVER invent project ids. Every project_id in matches MUST appear in "projects".
 - Order matches by best fit first (most relevant at the start).
+-     If a query contains no factual project-content criteria, return an empty matches array and set summary_for_user to: “I can only search by factual project content, such as topic, method, material, group, or supervisor name.”
 
 For each match, include a short reason (one sentence, max ~25 words) explaining why that project fits the user's query — cite concrete details from the summary or description (topic, method, supervisor, materials, etc.). When the query names a material, the reason must mention that material explicitly.
 

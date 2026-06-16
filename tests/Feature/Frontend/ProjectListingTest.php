@@ -103,16 +103,21 @@ test('division routes return 200 and show project index', function () {
     $response->assertViewIs('projects.index');
     $response->assertViewHas('selectedDivision');
     $response->assertSee('Thermo-Fluids Engineering (TFE)');
+    $response->assertSee('Hydrogen experiments');
+    $response->assertSee('CFD for multiphase flows');
 
     $response = $this->get(route('projects.division.computational-experimental-mechanics'));
     $response->assertStatus(200);
     $response->assertViewIs('projects.index');
     $response->assertSee('Computational and Experimental Mechanics (CEM)');
+    $response->assertSee('Experiments with steel');
 
     $response = $this->get(route('projects.division.dynamical-systems-design'));
     $response->assertStatus(200);
     $response->assertViewIs('projects.index');
     $response->assertSee('Dynamical Systems Design (DSD)');
+    $response->assertSee('Reinforcement learning for vehicle control');
+    $response->assertDontSee('Supervisory control for robotics');
 });
 
 test('division routes use the abbreviation in the URL', function () {

@@ -28,7 +28,7 @@
                         @include('projects.partials.search-form')
 
                         <div class="mt-6 flex flex-wrap justify-center gap-2 sm:gap-3">
-                            @foreach (['Experiments with steel', 'Supervised by a specific professor', 'Master thesis on simulation'] as $suggestion)
+                            @foreach ($searchSuggestions as $suggestion)
                                 <button type="button" data-search-suggestion="{{ $suggestion }}"
                                     class="search-suggestion-btn px-4 py-2 rounded-full border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white">
                                     {{ $suggestion }}

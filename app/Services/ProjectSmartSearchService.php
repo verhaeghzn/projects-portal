@@ -222,6 +222,10 @@ class ProjectSmartSearchService
             return false;
         }
 
+        if (config('app.debug')) {
+            return false;
+        }
+
         if (ProjectSearchInterpreter::isFaked()) {
             return false;
         }
