@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Throwable;
 
@@ -19,7 +20,10 @@ class SuggestProjectTagsAction
         return Action::make('suggestTags')
             ->label('Suggest tags')
             ->icon(Heroicon::OutlinedSparkles)
-            ->iconButton()
+            ->button()
+            ->outlined()
+            ->size(Size::Small)
+            ->hiddenLabel()
             ->color('primary')
             ->tooltip('Automatically suggest tags using AI')
             ->action(function (Get $get, Set $set, Select $component, ProjectTagSuggestionService $service): void {
