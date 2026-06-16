@@ -65,7 +65,6 @@ class SamlController extends Controller
         $settings = $this->getSamlSettings();
 
         $hasIdpCert = ! empty($settings['idp']['x509cert'])
-            || ! empty($settings['idp']['certFingerprint'])
             || ! empty($settings['idp']['x509certMulti']['signing']);
 
         if (! $hasIdpCert) {
@@ -83,28 +82,79 @@ class SamlController extends Controller
         }
 
         if (! empty($settings['idp']['x509cert'])) {
-            $certPreview = substr($settings['idp']['x509cert'], 0, 50);
-            Log::debug("SAML IDP certificate loaded: {$certPreview}... (total: " . strlen($settings['idp']['x509cert']) . " chars)");
-        } elseif (! empty($settings['idp']['certFingerprint'])) {
-            Log::debug('SAML IDP certificate pinned by fingerprint: ' . substr($settings['idp']['certFingerprint'], 0, 16) . '...');
+            Log::debug('SAML IDP certificate loaded (' . strlen($settings['idp']['x509cert']) . ' chars)');
         }
         
         try {
             return new SamlAuth($settings);
         } catch (\Exception $e) {
-            // If it's a certificate error, provide more helpful message
             if (str_contains($e->getMessage(), 'cert') || str_contains($e->getMessage(), 'fingerprint')) {
                 Log::error('SAML configuration error: ' . $e->getMessage());
-                Log::error('IDP certificate status: ' . (empty($settings['idp']['x509cert']) ? 'MISSING' : 'PRESENT (' . strlen($settings['idp']['x509cert']) . ' chars)'));
-                Log::error('IDP certificate preview: ' . substr($settings['idp']['x509cert'] ?? '', 0, 100));
+
                 throw new \RuntimeException(
                     'SAML configuration error: IDP certificate issue. ' .
-                    'Please ensure the SURF Conext certificate is properly downloaded and configured. ' .
-                    'Run: php artisan saml:install. Error: ' . $e->getMessage()
+                    'Run: php artisan saml:install --refresh-surf. Error: ' . $e->getMessage()
                 );
             }
+
             throw $e;
         }
+    }
+
+    /**
+     * Build SamlAuth for ACS, merging SURF's embedded signature certificates into the trust store.
+     */
+    protected function getSamlAuthForAcs(Request $request, ?string $guard = null): SamlAuth
+    {
+        $this->configureOneLoginUtils();
+
+        $settings = $this->getSamlSettings();
+        $trusted = SurfIdpCertificateLoader::load();
+        $responseCerts = SurfIdpCertificateLoader::certificatesFromSamlResponse(
+            $request->input('SAMLResponse')
+        );
+
+        if ($responseCerts !== [] || $trusted !== []) {
+            $merged = SurfIdpCertificateLoader::mergeWithResponseCerts($trusted, $responseCerts);
+            unset(
+                $settings['idp']['certFingerprint'],
+                $settings['idp']['certFingerprintAlgorithm'],
+            );
+
+            if (! empty($merged['x509certMulti']['signing'])) {
+                $settings['idp']['x509certMulti'] = $merged['x509certMulti'];
+                $settings['idp']['x509cert'] = $merged['x509cert'] ?? $merged['x509certMulti']['signing'][0];
+            } elseif (! empty($merged['x509cert'])) {
+                $settings['idp']['x509cert'] = $merged['x509cert'];
+                unset($settings['idp']['x509certMulti']);
+            }
+
+            $trustedFps = SurfIdpCertificateLoader::trustedFingerprints($trusted);
+            $validatedResponse = SurfIdpCertificateLoader::filterResponseCertsByTrustedFingerprints(
+                $responseCerts,
+                $trustedFps,
+            );
+
+            Log::debug('SAML ACS: IdP signing certs for validation', [
+                'trusted_source' => SurfIdpCertificateLoader::lastSource(),
+                'trusted_fps' => array_map(fn (string $fp) => substr($fp, 0, 16), $trustedFps),
+                'response_count' => count($responseCerts),
+                'response_matched_count' => count($validatedResponse),
+                'merged_count' => count($merged['x509certMulti']['signing'] ?? array_filter([$merged['x509cert'] ?? ''])),
+            ]);
+        }
+
+        $hasIdpCert = ! empty($settings['idp']['x509cert'])
+            || ! empty($settings['idp']['x509certMulti']['signing']);
+
+        if (! $hasIdpCert) {
+            throw new \RuntimeException(
+                'SURF Conext signing certificate could not be loaded. ' .
+                'Run: php artisan saml:install --refresh-surf'
+            );
+        }
+
+        return new SamlAuth($settings);
     }
 
     protected function getSamlSettings(): array
@@ -138,25 +188,20 @@ class SamlController extends Controller
             }
         }
 
-        // Load IdP certificate(s) from SURF metadata (cached) or local PEM file
+        // Never use a stale SURF_PUBLIC_CERT baked into config:cache — load fresh only
+        $config['idp']['x509cert'] = '';
+        unset($config['idp']['x509certMulti'], $config['idp']['certFingerprint'], $config['idp']['certFingerprintAlgorithm']);
+
         $idpCerts = SurfIdpCertificateLoader::load();
 
-        if (! empty($idpCerts['x509certMulti']['signing']) && count($idpCerts['x509certMulti']['signing']) > 1) {
+        if (! empty($idpCerts['x509certMulti']['signing'])) {
             $config['idp']['x509certMulti'] = $idpCerts['x509certMulti'];
-            $config['idp']['x509cert'] = $idpCerts['x509cert'] ?? '';
+            $config['idp']['x509cert'] = $idpCerts['x509cert'] ?? $idpCerts['x509certMulti']['signing'][0];
         } elseif (! empty($idpCerts['x509cert'])) {
             $config['idp']['x509cert'] = $idpCerts['x509cert'];
-        } elseif (! empty($idpCerts['certFingerprint'])) {
-            // Fallback: pin via SHA-256 fingerprint when PEM is unavailable
-            $config['idp']['certFingerprint'] = $idpCerts['certFingerprint'];
-            $config['idp']['certFingerprintAlgorithm'] = $idpCerts['certFingerprintAlgorithm'] ?? 'sha256';
-            $config['idp']['x509cert'] = '';
-            unset($config['idp']['x509certMulti']);
-        } elseif (! empty($config['idp']['x509cert'])) {
-            $config['idp']['x509cert'] = $this->normalizeCertificate($config['idp']['x509cert']);
         }
 
-        if (empty($config['idp']['x509cert']) && empty($config['idp']['certFingerprint']) && empty($config['idp']['x509certMulti'])) {
+        if (empty($config['idp']['x509cert']) && empty($config['idp']['x509certMulti'])) {
             Log::error('SAML SURF IdP certificate could not be loaded. Run: php artisan saml:install --refresh-surf');
         }
 
@@ -203,8 +248,6 @@ class SamlController extends Controller
      */
     protected function redirectToAuthFailed(string $guard, string $returnUrl, ?string $error = null, array $extra = []): RedirectResponse
     {
-        $idpCerts = SurfIdpCertificateLoader::load();
-
         $diagnostics = array_merge([
             'ref' => strtoupper(bin2hex(random_bytes(4))),
             'at' => now()->utc()->format('Y-m-d H:i:s') . ' UTC',
@@ -215,12 +258,9 @@ class SamlController extends Controller
             'acs_url' => config('saml.sp.acs_url'),
             'entity_id' => config('saml.sp.entity_id'),
             'app_url' => config('app.url'),
-            'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
-            'idp_cert_fp' => substr((string) ($idpCerts['certFingerprint'] ?? ''), 0, 16)
-                ?: SurfIdpCertificateLoader::fingerprintShort((string) ($idpCerts['x509cert'] ?? '')),
         ], $extra);
 
-        session(['saml_last_diagnostics' => $diagnostics]);
+        session(['saml_last_diagnostics' => $this->sessionDiagnostics($diagnostics)]);
         session()->save();
 
         $this->reportSamlFailure($diagnostics);
@@ -230,6 +270,102 @@ class SamlController extends Controller
             'return' => $returnUrl,
             'auth_failed' => 1,
         ]);
+    }
+
+    /**
+     * Subset of diagnostics safe to show on the error page (no paths, versions, etc.).
+     *
+     * @return array<string, mixed>
+     */
+    protected function sessionDiagnostics(array $diagnostics): array
+    {
+        $keys = [
+            'ref', 'at', 'stage', 'guard', 'codes', 'error',
+            'idp_cert_source', 'idp_cert_fp', 'trusted_cert_fps', 'response_cert_fps',
+            'acs_url', 'return',
+        ];
+
+        return array_intersect_key($diagnostics, array_flip($keys));
+    }
+
+    /**
+     * Collect everything useful for debugging ACS signature / validation failures.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildAcsFailureDiagnostics(Request $request, ?SamlAuth $samlAuth = null, array $overrides = []): array
+    {
+        $samlResponse = $request->input('SAMLResponse');
+        $trusted = SurfIdpCertificateLoader::load();
+        $trustedFps = SurfIdpCertificateLoader::trustedFingerprints($trusted);
+        $responseCerts = SurfIdpCertificateLoader::certificatesFromSamlResponse($samlResponse);
+        $validatedResponse = SurfIdpCertificateLoader::filterResponseCertsByTrustedFingerprints(
+            $responseCerts,
+            $trustedFps,
+        );
+        $merged = SurfIdpCertificateLoader::mergeWithResponseCerts($trusted, $responseCerts);
+        $mergedSigning = $merged['x509certMulti']['signing'] ?? array_values(array_filter([$merged['x509cert'] ?? '']));
+
+        $configuredIdpCert = '';
+        $configuredIdpFps = [];
+        if ($samlAuth !== null) {
+            $idpData = $samlAuth->getSettings()->getIdPData();
+            $configuredIdpCert = (string) ($idpData['x509cert'] ?? '');
+            $configuredSigning = $idpData['x509certMulti']['signing'] ?? [$configuredIdpCert];
+            foreach ($configuredSigning as $cert) {
+                $fp = SurfIdpCertificateLoader::fingerprint((string) $cert);
+                if ($fp !== null) {
+                    $configuredIdpFps[] = $fp;
+                }
+            }
+        }
+
+        $spCert = SurfIdpCertificateLoader::certFileInfo((string) config('saml.sp.public_cert_path'));
+        $spKeyPath = (string) config('saml.sp.private_key_path');
+        $spKeyResolved = ! str_starts_with($spKeyPath, '/') ? base_path($spKeyPath) : $spKeyPath;
+        $surfCert = SurfIdpCertificateLoader::certFileInfo((string) config('saml.surf.public_cert_path'));
+        $security = config('saml.settings.security', []);
+
+        $selfUrl = null;
+        try {
+            $selfUrl = Utils::getSelfURL();
+        } catch (\Throwable) {
+            // OneLogin utils may not be configured yet.
+        }
+
+        return array_merge([
+            'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
+            'idp_cert_fp' => SurfIdpCertificateLoader::shortFingerprints($trustedFps)[0] ?? null,
+            'trusted_cert_fps' => SurfIdpCertificateLoader::shortFingerprints($trustedFps),
+            'configured_idp_cert_fps' => SurfIdpCertificateLoader::shortFingerprints($configuredIdpFps),
+            'response_cert_fps' => SurfIdpCertificateLoader::fingerprintsFromSamlResponse($samlResponse),
+            'response_cert_count' => count($responseCerts),
+            'response_matched_count' => count($validatedResponse),
+            'merged_cert_count' => count($mergedSigning),
+            'cert_bytes_match' => SurfIdpCertificateLoader::responseCertBytesMatchConfigured(
+                $responseCerts,
+                $configuredIdpCert,
+            ),
+            'fingerprints_match' => array_intersect(
+                SurfIdpCertificateLoader::shortFingerprints($trustedFps),
+                SurfIdpCertificateLoader::fingerprintsFromSamlResponse($samlResponse),
+            ) !== [],
+            'sp_entity_id' => config('saml.sp.entity_id'),
+            'idp_entity_id' => config('saml.surf.entity_id'),
+            'sp_public_cert' => $spCert,
+            'sp_private_key_exists' => is_readable($spKeyResolved),
+            'sp_private_key_path' => $spKeyResolved,
+            'surf_public_cert' => $surfCert,
+            'surf_metadata_url' => config('saml.surf.metadata_url'),
+            'authn_requests_signed' => (bool) ($security['authnRequestsSigned'] ?? false),
+            'want_assertions_signed' => (bool) ($security['wantAssertionsSigned'] ?? false),
+            'strict' => (bool) config('saml.settings.strict', true),
+            'relay_state_present' => $request->filled('RelayState'),
+            'onelogin_self_url' => $selfUrl,
+            'php_version' => PHP_VERSION,
+            'openssl_version' => defined('OPENSSL_VERSION_TEXT') ? OPENSSL_VERSION_TEXT : null,
+            'response' => SurfIdpCertificateLoader::responseDiagnostics($samlResponse),
+        ], $overrides);
     }
 
     /**
@@ -246,9 +382,10 @@ class SamlController extends Controller
         try {
             $message = $diagnostics['error'] ?? 'SAML authentication failed';
             $ref = $diagnostics['ref'] ?? 'unknown';
+            $stage = $diagnostics['stage'] ?? 'unknown';
 
             Flare::report(
-                new SamlAuthenticationException("[{$ref}] {$message}"),
+                new SamlAuthenticationException("[{$ref}] [{$stage}] {$message}"),
                 fn ($report) => $report->context('saml', $diagnostics),
                 handled: true,
             );
@@ -351,9 +488,26 @@ class SamlController extends Controller
             Log::error('SAML login error: ' . $e->getMessage());
             Log::error('SAML login error trace: ' . $e->getTraceAsString());
 
-            return $this->redirectToAuthFailed($guard, $returnUrl, $e->getMessage(), [
+            return $this->redirectToAuthFailed($guard, $returnUrl, $e->getMessage(), array_merge([
                 'stage' => 'login',
-            ]);
+                'sp_public_cert' => SurfIdpCertificateLoader::certFileInfo((string) config('saml.sp.public_cert_path')),
+                'sp_private_key_path' => ! str_starts_with((string) config('saml.sp.private_key_path'), '/')
+                    ? base_path((string) config('saml.sp.private_key_path'))
+                    : (string) config('saml.sp.private_key_path'),
+                'sp_private_key_exists' => is_readable(
+                    ! str_starts_with((string) config('saml.sp.private_key_path'), '/')
+                        ? base_path((string) config('saml.sp.private_key_path'))
+                        : (string) config('saml.sp.private_key_path')
+                ),
+                'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
+                'trusted_cert_fps' => SurfIdpCertificateLoader::shortFingerprints(
+                    SurfIdpCertificateLoader::trustedFingerprints(SurfIdpCertificateLoader::load()),
+                ),
+                'exception' => [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                ],
+            ]));
         }
     }
 
@@ -383,7 +537,7 @@ class SamlController extends Controller
         // arrives without the login session cookie, or with a stale ID from a prior attempt.
 
         try {
-            $samlAuth = $this->getSamlAuth($guard);
+            $samlAuth = $this->getSamlAuthForAcs($request, $guard);
 
             if (config('saml.settings.debug', false)) {
                 Log::debug('SAML ACS: Request ID from session (not used): ' . (session('saml_request_id') ?? 'none'));
@@ -399,85 +553,18 @@ class SamlController extends Controller
             if (!empty($errors)) {
                 $errorReason = $samlAuth->getLastErrorReason();
                 $errorException = $samlAuth->getLastErrorException();
-                
-                Log::error('SAML ACS errors: ' . implode(', ', $errors));
-                if ($errorReason) {
-                    Log::error('SAML ACS error reason: ' . $errorReason);
-                }
-                if ($errorException) {
-                    Log::error('SAML ACS error exception: ' . $errorException->getMessage());
-                    Log::error('SAML ACS error exception trace: ' . $errorException->getTraceAsString());
-                }
-                
-                // Always log detailed certificate comparison for signature errors
-                $lastResponseXML = $samlAuth->getLastResponseXML();
-                if ($lastResponseXML) {
-                    try {
-                        $responseDoc = new \DOMDocument();
-                        $responseDoc->loadXML($lastResponseXML);
-                        $xpath = new \DOMXPath($responseDoc);
-                        $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
-                        $xpath->registerNamespace('saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
-                        
-                        // Find certificates in the response
-                        $certNodes = $xpath->query('//ds:X509Certificate');
-                        Log::error('SAML ACS: Found ' . $certNodes->length . ' certificate(s) in response');
-                        
-                        if ($certNodes->length > 0) {
-                            for ($i = 0; $i < $certNodes->length; $i++) {
-                                $responseCert = $certNodes->item($i)->nodeValue;
-                                $responseCertClean = preg_replace('/\s+/', '', $responseCert);
-                                Log::error("SAML ACS: Response cert #{$i} (first 100 chars): " . substr($responseCertClean, 0, 100));
-                            }
-                            
-                            // Compare with our certificate
-                            $idpData = $samlAuth->getSettings()->getIdPData();
-                            $ourCert = $idpData['x509cert'] ?? '';
-                            if ($ourCert) {
-                                $ourCertClean = preg_replace('/\s+/', '', $ourCert);
-                                Log::error('SAML ACS: Our configured cert (first 100 chars): ' . substr($ourCertClean, 0, 100));
-                                
-                                $foundMatch = false;
-                                for ($i = 0; $i < $certNodes->length; $i++) {
-                                    $responseCertClean = preg_replace('/\s+/', '', $certNodes->item($i)->nodeValue);
-                                    if ($ourCertClean === $responseCertClean) {
-                                        Log::error("SAML ACS: Certificate #{$i} MATCHES our configured certificate!");
-                                        $foundMatch = true;
-                                        break;
-                                    }
-                                }
-                                
-                                if (!$foundMatch) {
-                                    Log::error('SAML ACS: NONE of the response certificates match our configured certificate!');
-                                    Log::error('SAML ACS: This suggests the wrong certificate was extracted from SURF metadata.');
-                                    Log::error('SAML ACS: Please re-extract the certificate from SURF metadata or check if multiple certificates are needed.');
-                                }
-                            }
-                        } else {
-                            Log::error('SAML ACS: No X509Certificate found in response - response may not be signed');
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('SAML ACS: Could not extract certificate from response: ' . $e->getMessage());
-                    }
-                }
-                
-                // Log full response XML if debug is enabled
-                if (config('saml.settings.strict', false) || env('SAML_DEBUG', false)) {
-                    if ($lastResponseXML) {
-                        Log::debug('SAML ACS Last Response XML: ' . $lastResponseXML);
-                    }
-                }
-                
-                return $this->redirectToAuthFailed($guard, $returnUrl, $errorReason ?: implode(', ', $errors), [
+
+                return $this->redirectToAuthFailed($guard, $returnUrl, $errorReason ?: implode(', ', $errors), $this->buildAcsFailureDiagnostics($request, $samlAuth, [
                     'codes' => $errors,
-                    'response_cert_fps' => SurfIdpCertificateLoader::fingerprintsFromSamlResponse(
-                        $request->input('SAMLResponse')
-                    ),
-                ]);
+                    'exception' => $errorException ? [
+                        'class' => $errorException::class,
+                        'message' => $errorException->getMessage(),
+                    ] : null,
+                ]));
             }
 
             if (!$samlAuth->isAuthenticated()) {
-                return $this->redirectToAuthFailed($guard, $returnUrl, 'SAML response was not authenticated.');
+                return $this->redirectToAuthFailed($guard, $returnUrl, 'SAML response was not authenticated.', $this->buildAcsFailureDiagnostics($request, $samlAuth));
             }
 
             // Extract attributes
@@ -498,7 +585,7 @@ class SamlController extends Controller
             if (empty($persistentId)) {
                 Log::error('SAML: No persistent ID found in response');
 
-                return $this->redirectToAuthFailed($guard, $returnUrl, 'Missing user identifier in SAML response.');
+                return $this->redirectToAuthFailed($guard, $returnUrl, 'Missing user identifier in SAML response.', $this->buildAcsFailureDiagnostics($request, $samlAuth));
             }
 
             // Link mode: connect SURF identity to the already-logged-in user (no email needed)
@@ -530,9 +617,12 @@ class SamlController extends Controller
                 return $this->handleAdminAuth($persistentId, $email, $returnUrl);
             }
         } catch (\Exception $e) {
-            Log::error('SAML ACS error: ' . $e->getMessage());
-
-            return $this->redirectToAuthFailed($guard ?? 'students', $returnUrl ?? '/', $e->getMessage());
+            return $this->redirectToAuthFailed($guard ?? 'students', $returnUrl ?? '/', $e->getMessage(), $this->buildAcsFailureDiagnostics($request, null, [
+                'exception' => [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                ],
+            ]));
         }
     }
 

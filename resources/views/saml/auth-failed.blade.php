@@ -36,6 +36,7 @@
                     'error' => 'Error',
                     'idp_cert_source' => 'Cert source',
                     'idp_cert_fp' => 'Configured FP',
+                    'trusted_cert_fps' => 'Trusted FP(s)',
                     'response_cert_fps' => 'Response FP(s)',
                     'acs_url' => 'ACS URL',
                     'return' => 'Return URL',

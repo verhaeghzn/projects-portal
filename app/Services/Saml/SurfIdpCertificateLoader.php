@@ -377,6 +377,265 @@ class SurfIdpCertificateLoader
     }
 
     /**
+     * @return string[]
+     */
+    public static function certificatesFromSamlResponse(?string $samlResponse): array
+    {
+        if ($samlResponse === null || $samlResponse === '') {
+            return [];
+        }
+
+        $xml = base64_decode($samlResponse, true);
+        if ($xml === false || $xml === '') {
+            return [];
+        }
+
+        $doc = new \DOMDocument();
+        if (! @$doc->loadXML($xml)) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath($doc);
+        $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+        $nodes = $xpath->query('//ds:X509Certificate');
+
+        $certs = [];
+        for ($i = 0; $i < $nodes->length; $i++) {
+            $certs[] = Utils::formatCert($nodes->item($i)->nodeValue, false);
+        }
+
+        return self::deduplicateCerts($certs);
+    }
+
+    /**
+     * @param  string[]  $certs
+     * @return string[]
+     */
+    public static function deduplicateCerts(array $certs): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($certs as $cert) {
+            if ($cert === '') {
+                continue;
+            }
+
+            $fp = self::fingerprint($cert) ?? $cert;
+            if (isset($seen[$fp])) {
+                continue;
+            }
+
+            $seen[$fp] = true;
+            $unique[] = $cert;
+        }
+
+        return $unique;
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function trustedFingerprints(array $trusted): array
+    {
+        $signing = $trusted['x509certMulti']['signing']
+            ?? array_values(array_filter([$trusted['x509cert'] ?? '']));
+
+        $fps = [];
+        foreach ($signing as $cert) {
+            $fp = self::fingerprint($cert);
+            if ($fp !== null) {
+                $fps[] = $fp;
+            }
+        }
+
+        return array_values(array_unique($fps));
+    }
+
+    /**
+     * Keep only response-embedded certs whose fingerprint matches a trusted IdP cert.
+     *
+     * @param  string[]  $responseCerts
+     * @param  string[]  $trustedFingerprints
+     * @return string[]
+     */
+    public static function filterResponseCertsByTrustedFingerprints(array $responseCerts, array $trustedFingerprints): array
+    {
+        if ($trustedFingerprints === []) {
+            return self::deduplicateCerts($responseCerts);
+        }
+
+        $allowed = array_fill_keys($trustedFingerprints, true);
+        $matched = [];
+
+        foreach ($responseCerts as $cert) {
+            $fp = self::fingerprint($cert);
+            if ($fp !== null && isset($allowed[$fp])) {
+                $matched[] = $cert;
+            }
+        }
+
+        return self::deduplicateCerts($matched);
+    }
+
+    /**
+     * Merge trusted IdP certs with certs embedded in the SAML response signatures.
+     *
+     * @param  array{x509cert?: string, x509certMulti?: array{signing: string[]}}  $trusted
+     * @param  string[]  $responseCerts
+     * @return array{x509cert?: string, x509certMulti?: array{signing: string[]}}
+     */
+    public static function mergeWithResponseCerts(array $trusted, array $responseCerts): array
+    {
+        $trustedSigning = $trusted['x509certMulti']['signing']
+            ?? array_values(array_filter([$trusted['x509cert'] ?? '']));
+        $trustedFps = self::trustedFingerprints($trusted);
+
+        $validatedResponse = self::filterResponseCertsByTrustedFingerprints($responseCerts, $trustedFps);
+
+        // Prefer exact cert bytes from the response (avoids PEM formatting mismatches).
+        $merged = array_merge($validatedResponse, $trustedSigning);
+
+        return self::certsToIdpConfig(self::deduplicateCerts($merged));
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function shortFingerprints(array $fingerprints): array
+    {
+        return array_values(array_unique(array_map(
+            fn (string $fp) => substr($fp, 0, 16),
+            $fingerprints,
+        )));
+    }
+
+    /**
+     * @return array{
+     *     exists: bool,
+     *     resolved_path: ?string,
+     *     fingerprint: ?string
+     * }
+     */
+    public static function certFileInfo(string $configuredPath): array
+    {
+        $resolved = self::resolveCertPath($configuredPath) ?? (
+            ! str_starts_with($configuredPath, '/') ? base_path($configuredPath) : $configuredPath
+        );
+
+        if (! is_readable($resolved)) {
+            return [
+                'exists' => false,
+                'resolved_path' => $resolved,
+                'fingerprint' => null,
+            ];
+        }
+
+        $certs = self::parsePemCertificates((string) file_get_contents($resolved));
+        $fp = isset($certs[0]) ? self::fingerprintShort($certs[0]) : null;
+
+        return [
+            'exists' => true,
+            'resolved_path' => $resolved,
+            'fingerprint' => $fp,
+        ];
+    }
+
+    /**
+     * Parse non-sensitive SAML response metadata for diagnostics.
+     *
+     * @return array<string, mixed>
+     */
+    public static function responseDiagnostics(?string $samlResponse): array
+    {
+        if ($samlResponse === null || $samlResponse === '') {
+            return [
+                'saml_response_length' => 0,
+                'response_cert_count' => 0,
+            ];
+        }
+
+        $xml = base64_decode($samlResponse, true);
+        if ($xml === false || $xml === '') {
+            return [
+                'saml_response_length' => strlen($samlResponse),
+                'response_decode_failed' => true,
+            ];
+        }
+
+        $doc = new \DOMDocument();
+        if (! @$doc->loadXML($xml)) {
+            return [
+                'saml_response_length' => strlen($samlResponse),
+                'response_xml_invalid' => true,
+            ];
+        }
+
+        $xpath = new \DOMXPath($doc);
+        $xpath->registerNamespace('samlp', 'urn:oasis:names:tc:SAML:2.0:protocol');
+        $xpath->registerNamespace('saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
+        $xpath->registerNamespace('ds', 'http://www.w3.org/2000/09/xmldsig#');
+
+        $destination = $doc->documentElement->hasAttribute('Destination')
+            ? $doc->documentElement->getAttribute('Destination')
+            : null;
+
+        $audiences = [];
+        $audienceNodes = $xpath->query('//saml:Audience');
+        for ($i = 0; $i < $audienceNodes->length; $i++) {
+            $audiences[] = trim($audienceNodes->item($i)->textContent);
+        }
+
+        $issuers = [];
+        $issuerNodes = $xpath->query('//saml:Issuer | //samlp:Issuer');
+        for ($i = 0; $i < $issuerNodes->length; $i++) {
+            $issuers[] = trim($issuerNodes->item($i)->textContent);
+        }
+
+        $statusCode = null;
+        $statusNodes = $xpath->query('//samlp:Status/samlp:StatusCode');
+        if ($statusNodes->length > 0 && $statusNodes->item(0)->hasAttribute('Value')) {
+            $statusCode = $statusNodes->item(0)->getAttribute('Value');
+        }
+
+        return [
+            'saml_response_length' => strlen($samlResponse),
+            'response_xml_length' => strlen($xml),
+            'response_destination' => $destination,
+            'response_audiences' => array_values(array_unique(array_filter($audiences))),
+            'response_issuers' => array_values(array_unique(array_filter($issuers))),
+            'response_status_code' => $statusCode,
+            'has_response_signature' => $xpath->query('/samlp:Response/ds:Signature')->length > 0,
+            'has_assertion_signature' => $xpath->query('//saml:Assertion/ds:Signature')->length > 0,
+            'response_cert_count' => $xpath->query('//ds:X509Certificate')->length,
+            'response_cert_fps' => self::fingerprintsFromSamlResponse($samlResponse),
+        ];
+    }
+
+    /**
+     * Whether any response-embedded cert matches configured cert bytes exactly.
+     *
+     * @param  string[]  $responseCerts
+     */
+    public static function responseCertBytesMatchConfigured(array $responseCerts, string $configuredCert): bool
+    {
+        if ($configuredCert === '') {
+            return false;
+        }
+
+        $configuredClean = preg_replace('/\s+/', '', Utils::formatCert($configuredCert, false));
+
+        foreach ($responseCerts as $cert) {
+            $responseClean = preg_replace('/\s+/', '', Utils::formatCert($cert, false));
+            if ($responseClean === $configuredClean) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Extract SHA-256 fingerprints of all X509 certs embedded in a SAML response.
      *
      * @return string[]
