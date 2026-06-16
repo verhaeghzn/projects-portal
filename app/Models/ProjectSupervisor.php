@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -10,8 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectSupervisor extends Model
 {
-    use Cachable;
-
     protected $table = 'project_supervisor';
 
     protected $fillable = [

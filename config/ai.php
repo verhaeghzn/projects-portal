@@ -143,6 +143,8 @@ return [
         'group_summary_model' => env('AI_GROUP_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini'))),
         'group_summary_max_chars' => (int) env('AI_GROUP_SEARCH_SUMMARY_MAX_CHARS', 700),
         'group_summary_max_projects' => (int) env('AI_GROUP_SEARCH_SUMMARY_MAX_PROJECTS', 40),
+        'cache_enabled' => env('AI_PROJECT_SEARCH_CACHE_ENABLED', true),
+        'cache_ttl' => (int) env('AI_PROJECT_SEARCH_CACHE_TTL', 21600),
     ],
 
 ];
