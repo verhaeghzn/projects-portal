@@ -135,6 +135,13 @@ class ProjectForm
                             ->helperText('When checked, the project is visible on the public project pages. Uncheck to keep it as a draft (concept).')
                             ->default(true)
                             ->live(),
+
+                        Toggle::make('is_public')
+                            ->label('Publish publicly')
+                            ->helperText('When checked, the project page is accessible without logging in and the project appears on the public "Past Projects" list once it has finished.')
+                            ->default(false)
+                            ->visible(fn ($get) => (bool) $get('is_published'))
+                            ->live(),
                     ]),
 
                 RichEditor::make('richtext_content')

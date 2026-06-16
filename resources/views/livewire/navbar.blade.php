@@ -52,6 +52,8 @@
                 <a href="{{ route('contact') }}" class="nav-link">Contact</a>
                 @auth
                     <a href="{{ url('/admin') }}" class="btn-primary-sm">To admin panel</a>
+                @elseif (! auth('students')->check() && \App\Helpers\SamlHelper::isEnabled())
+                    <a href="{{ route('saml.login', ['guard' => 'students', 'return' => request()->fullUrl()]) }}" class="btn-primary-sm">Log in</a>
                 @endauth
             </div>
 
@@ -97,6 +99,10 @@
                 @auth
                     <a href="{{ url('/admin') }}" class="block px-4 py-3 text-base font-medium text-white bg-primary hover:bg-tue-red-dark rounded-md transition-colors">
                         Staff access
+                    </a>
+                @elseif (! auth('students')->check() && \App\Helpers\SamlHelper::isEnabled())
+                    <a href="{{ route('saml.login', ['guard' => 'students', 'return' => request()->fullUrl()]) }}" class="block px-4 py-3 text-base font-medium text-white bg-primary hover:bg-tue-red-dark rounded-md transition-colors">
+                        Log in
                     </a>
                 @endauth
             </div>

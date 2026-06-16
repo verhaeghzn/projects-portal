@@ -28,11 +28,13 @@ class Project extends Model
         'project_owner_id',
         'organization_id',
         'is_published',
+        'is_public',
         'random_ranking',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
+        'is_public' => 'boolean',
         'search_summary_generated_at' => 'datetime',
     ];
 
@@ -148,6 +150,14 @@ class Project extends Model
             $q->whereNotNull('student_name')
                 ->orWhereNotNull('student_email');
         });
+    }
+
+    /**
+     * Projects that are published publicly (visible to non-students / guests).
+     */
+    public function scopePublic($query)
+    {
+        return $query->where('is_public', true);
     }
 
     /**

@@ -419,13 +419,20 @@ class SamlController extends Controller
 
     /**
      * Redirect to admin login with a Filament notification so the message is visible on the login page.
+     *
+     * @param  'danger'|'warning'  $type
      */
-    protected function redirectToAdminLoginWithError(string $message): RedirectResponse
+    protected function redirectToAdminLoginWithError(string $message, string $type = 'danger'): RedirectResponse
     {
-        Notification::make()
-            ->title($message)
-            ->danger()
-            ->send();
+        $notification = Notification::make()->title($message);
+
+        if ($type === 'warning') {
+            $notification->warning();
+        } else {
+            $notification->danger();
+        }
+
+        $notification->send();
 
         return redirect('/admin/login');
     }
@@ -680,13 +687,15 @@ class SamlController extends Controller
         }
 
         if (!$user) {
-            $linkExplanation = ' If you already have an admin account, log in with your username and password, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account for next time.';
+            $warning = 'Is your sign-in using Single-Sign-On (SSO) unsuccessful? Please sign in once using email and password. We\'ll prepare your SSO sign-in for future use. Thanks for understanding.';
+
             if (empty($email)) {
                 Log::warning('SAML Admin: No email in response and no user linked to this SURF identity.');
-                return $this->redirectToAdminLoginWithError('We don\'t recognise you as an admin user yet. Log in with your username and password first, then open the user menu (top right) and choose "Link SURF Conext" to connect your SURF account. After that you can sign in with SURF Conext here.');
+            } else {
+                Log::warning('SAML Admin: User not found with email: ' . $email);
             }
-            Log::warning('SAML Admin: User not found with email: ' . $email);
-            return $this->redirectToAdminLoginWithError('No admin account found with this email address.' . $linkExplanation);
+
+            return $this->redirectToAdminLoginWithError($warning, 'warning');
         }
 
         // Check if user has access to admin panel

@@ -25,8 +25,19 @@ class ProjectFactory extends Factory
             'short_description' => fake()->paragraph(),
             'richtext_content' => fake()->paragraphs(3, true),
             'is_published' => true,
+            'is_public' => false,
             'project_owner_id' => User::factory(),
         ];
+    }
+
+    /**
+     * Indicate that the project is published publicly (visible to guests).
+     */
+    public function public(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_public' => true,
+        ]);
     }
 
     /**

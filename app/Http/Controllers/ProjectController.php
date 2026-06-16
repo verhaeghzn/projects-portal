@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SamlHelper;
 use App\Models\Division;
 use App\Models\Group;
 use App\Models\Project;
@@ -251,10 +252,17 @@ class ProjectController extends Controller
 
     public function past()
     {
-        $projects = Project::with(['supervisors', 'tags', 'owner'])
+        $query = Project::with(['supervisors', 'tags', 'owner'])
             ->past()
-            ->latest()
-            ->paginate(12);
+            ->where('is_published', true);
+
+        // Guests only see projects that are published publicly. Authenticated
+        // visitors (and everyone when SAML login isn't enforced) see all past projects.
+        if (! $this->canSeeNonPublicContent()) {
+            $query->public();
+        }
+
+        $projects = $query->latest()->paginate(12);
 
         return view('projects.past', [
             'projects' => $projects,
@@ -268,6 +276,11 @@ class ProjectController extends Controller
             abort(404);
         }
 
+        // Projects that are not published publicly require an authenticated visitor.
+        if (! $project->is_public && ! $this->canSeeNonPublicContent()) {
+            return redirect('/saml/login?guard=students&return='.urlencode(request()->url()));
+        }
+
         $project->load([
             'supervisors.group.section',
             'tags',
@@ -279,5 +292,18 @@ class ProjectController extends Controller
         return view('projects.show', [
             'project' => $project,
         ]);
+    }
+
+    /**
+     * Whether the current visitor may see content that is not published publicly.
+     *
+     * When SAML login isn't enforced the whole site is open, so every visitor is
+     * treated as internal. Otherwise an authenticated session (student or staff) is required.
+     */
+    private function canSeeNonPublicContent(): bool
+    {
+        return ! SamlHelper::isLoginRequired()
+            || auth('students')->check()
+            || auth('web')->check();
     }
 }

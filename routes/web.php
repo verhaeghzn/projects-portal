@@ -17,15 +17,19 @@ Route::get('/saml/logout', [SamlController::class, 'logout'])->name('saml.logout
 Route::get('/saml/sls', [SamlController::class, 'sls'])->name('saml.sls');
 Route::get('/saml/metadata', [SamlController::class, 'metadata'])->name('saml.metadata');
 
-// Public routes - require SAML auth only if SAML login is required
+// Always-public routes. The homepage and the "Past Projects" list are reachable
+// without authentication. The past list shows only publicly published projects to
+// guests (see ProjectController::past).
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
+Route::get('/projects/past', [ProjectController::class, 'past'])->name('projects.past');
+
+// Auth-gated routes - require SAML auth only if SAML login is required.
 $middleware = SamlHelper::isLoginRequired() ? [\App\Http\Middleware\RedirectToSamlLogin::class] : [];
 Route::middleware($middleware)->group(function () {
-    Route::get('/', function () {
-        return view('welcome');
-    })->name('home');
-
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-    Route::get('/projects/past', [ProjectController::class, 'past'])->name('projects.past');
 
     // Division project listings. Canonical URLs use the division abbreviation (e.g. /projects/cem).
     // Old slug-based URLs (e.g. /projects/computational-experimental-mechanics) are redirected for backwards compatibility.
@@ -45,10 +49,14 @@ Route::middleware($middleware)->group(function () {
         });
     }
 
-    Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
     Route::get('/contact', [ContactController::class, 'index'])->name('contact');
     Route::get('/privacy', [PrivacyController::class, 'index'])->name('privacy');
 });
+
+// Project detail page. Registered after the literal /projects/* routes so they take
+// precedence. Publicly published projects are reachable without auth; other projects
+// are gated for guests inside ProjectController::show.
+Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
 
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');
