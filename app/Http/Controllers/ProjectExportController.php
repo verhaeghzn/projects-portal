@@ -31,8 +31,12 @@ class ProjectExportController extends Controller
 
         abort_unless($canExport, 403);
 
-        $filename = 'projects-'.Str::slug($division->name).'-'.now()->format('Y-m-d').'.xlsx';
+        $onlyOpen = request()->query('scope') === 'open';
 
-        return Excel::download(new DivisionProjectsExport($division), $filename);
+        $filename = 'projects-'.Str::slug($division->name)
+            .($onlyOpen ? '-open' : '')
+            .'-'.now()->format('Y-m-d').'.xlsx';
+
+        return Excel::download(new DivisionProjectsExport($division, $onlyOpen), $filename);
     }
 }

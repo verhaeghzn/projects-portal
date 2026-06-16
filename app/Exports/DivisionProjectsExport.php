@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class DivisionProjectsExport implements FromGenerator, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
-    public function __construct(protected Division $division) {}
+    public function __construct(protected Division $division, protected bool $onlyOpen = false) {}
 
     public function title(): string
     {
@@ -59,6 +59,11 @@ class DivisionProjectsExport implements FromGenerator, ShouldAutoSize, WithHeadi
             $section = $project->section;
 
             if ($section?->division?->id !== $this->division->id) {
+                continue;
+            }
+
+            // "Open" projects are those not yet assigned to a student.
+            if ($this->onlyOpen && $project->is_taken) {
                 continue;
             }
 
