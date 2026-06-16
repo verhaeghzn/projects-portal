@@ -18,7 +18,10 @@
         @yield('content')
     </main>
 
-    <footer class="bg-gray-50 border-t border-gray-200 mt-8 sm:mt-12">
+    <footer @class([
+        'bg-gray-50 border-t border-gray-200 mt-8 sm:mt-12' => empty($hideFooter),
+        'hidden' => ! empty($hideFooter),
+    ])>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <div class="text-center text-xs sm:text-sm text-gray-600 space-y-2">
                 <p>&copy; {{ date('Y') }} Eindhoven University of Technology. All rights reserved.</p>
@@ -53,6 +56,7 @@
             });
         });
     </script>
+    @stack('scripts')
 </body>
 </html>
 

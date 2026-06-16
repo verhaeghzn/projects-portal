@@ -36,6 +36,19 @@ class GroupsTable
                     ->label('Users')
                     ->badge()
                     ->color('primary'),
+
+                TextColumn::make('search_summary')
+                    ->label('Search summary')
+                    ->limit(60)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('search_summary_generated_at')
+                    ->label('Summary generated')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

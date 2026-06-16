@@ -44,5 +44,18 @@ test('can edit group', function () {
     expect($group->fresh()->name)->toBe('Updated Group');
 });
 
+test('can edit group search summary', function () {
+    $group = Group::factory()->create();
+
+    livewire(\App\Filament\Resources\Groups\Pages\EditGroup::class, ['record' => $group->getRouteKey()])
+        ->fillForm([
+            'search_summary' => 'Experimental mechanics group specializing in fatigue of metals.',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($group->fresh()->search_summary)
+        ->toBe('Experimental mechanics group specializing in fatigue of metals.');
+});
 
 

@@ -19,6 +19,11 @@ class Group extends Model
         'abbrev_id',
         'external_url',
         'group_leader_id',
+        'search_summary',
+    ];
+
+    protected $casts = [
+        'search_summary_generated_at' => 'datetime',
     ];
 
     protected static function booted(): void

@@ -10,6 +10,7 @@
         "filament/filament": "^4.0",
         "joaopaulolndev/filament-edit-profile": "^2.0",
         "lab404/laravel-impersonate": "*",
+        "laravel/ai": "^0.4",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "mikebronner/laravel-model-caching": "^12.0",

@@ -12,6 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            $this->upSqlite();
+
+            return;
+        }
+
         Schema::table('project_supervisor', function (Blueprint $table) {
             // Add polymorphic columns
             $table->string('supervisor_type')->nullable()->after('project_id');
@@ -62,7 +68,7 @@ return new class extends Migration
         });
 
         // Now we can drop the unique constraint
-        DB::statement("ALTER TABLE `project_supervisor` DROP INDEX `project_supervisor_project_id_user_id_unique`");
+        DB::statement('ALTER TABLE `project_supervisor` DROP INDEX `project_supervisor_project_id_user_id_unique`');
 
         // Recreate the foreign key on project_id (it will create its own index)
         if ($projectFkName) {
@@ -76,6 +82,25 @@ return new class extends Migration
             $table->dropColumn('user_id');
 
             // Add new unique constraint
+            $table->unique(['project_id', 'supervisor_type', 'supervisor_id'], 'project_supervisor_unique');
+        });
+    }
+
+    /**
+     * SQLite cannot use the MySQL information_schema FK introspection above; rebuild the table.
+     */
+    private function upSqlite(): void
+    {
+        Schema::dropIfExists('project_supervisor');
+
+        Schema::create('project_supervisor', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('project_id')->constrained()->cascadeOnDelete();
+            $table->string('supervisor_type');
+            $table->unsignedBigInteger('supervisor_id');
+            $table->integer('order_rank');
+            $table->timestamps();
+
             $table->unique(['project_id', 'supervisor_type', 'supervisor_id'], 'project_supervisor_unique');
         });
     }

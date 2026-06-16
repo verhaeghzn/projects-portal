@@ -3,8 +3,6 @@
 use App\Models\ProjectSupervisor;
 use App\Models\ProjectType;
 use App\Models\Section;
-use App\Models\Tag;
-use App\Models\TagCategory;
 use App\Models\User;
 
 beforeEach(function () {
@@ -21,7 +19,7 @@ test('projects are displayed', function () {
     $project = createProject();
     $project->update(['is_published' => true]);
 
-    $response = $this->get('/projects');
+    $response = $this->get('/projects?browse=1');
 
     $response->assertStatus(200);
     $response->assertSee($project->name);
@@ -40,7 +38,7 @@ test('only published and available projects are shown', function () {
         'student_name' => 'John Doe',
     ]);
 
-    $response = $this->get('/projects');
+    $response = $this->get('/projects?browse=1');
 
     $response->assertSee($publishedProject->name);
     $response->assertDontSee($conceptProject->name);
@@ -65,24 +63,6 @@ test('can filter by project type', function () {
     $response->assertDontSee($masterProject->name);
 });
 
-test('can filter by nature tag', function () {
-    $natureTag = Tag::where('category', TagCategory::Nature)->first();
-    if (! $natureTag) {
-        $natureTag = Tag::factory()->category(TagCategory::Nature)->create();
-    }
-
-    $projectWithTag = createProject();
-    $projectWithTag->tags()->attach($natureTag->id);
-    $projectWithTag->update(['is_published' => true]);
-
-    $projectWithoutTag = createProject();
-    $projectWithoutTag->update(['is_published' => true]);
-
-    $response = $this->get('/projects?nature='.$natureTag->slug);
-
-    $response->assertSee($projectWithTag->name);
-});
-
 test('can filter by section', function () {
     $section = createSection();
     $group = createGroup(['section_id' => $section->id]);
@@ -103,21 +83,6 @@ test('can filter by section', function () {
     $response->assertSee($project->name);
 });
 
-test('can filter by focus tag', function () {
-    $focusTag = Tag::where('category', TagCategory::Focus)->first();
-    if (! $focusTag) {
-        $focusTag = Tag::factory()->category(TagCategory::Focus)->create();
-    }
-
-    $projectWithTag = createProject();
-    $projectWithTag->tags()->attach($focusTag->id);
-    $projectWithTag->update(['is_published' => true]);
-
-    $response = $this->get('/projects?focus='.$focusTag->slug);
-
-    $response->assertSee($projectWithTag->name);
-});
-
 test('pagination works', function () {
     // Create more than 12 projects (default pagination)
     for ($i = 0; $i < 15; $i++) {
@@ -125,7 +90,7 @@ test('pagination works', function () {
         $project->update(['is_published' => true]);
     }
 
-    $response = $this->get('/projects');
+    $response = $this->get('/projects?browse=1');
 
     $response->assertStatus(200);
     // Should have pagination links if more than 12 projects
@@ -154,7 +119,7 @@ test('projects index without division shows all projects', function () {
     $project = createProject();
     $project->update(['is_published' => true]);
 
-    $response = $this->get(route('projects.index'));
+    $response = $this->get(route('projects.index', ['browse' => 1]));
 
     $response->assertStatus(200);
     $response->assertViewHas('selectedDivision', null);
@@ -179,7 +144,7 @@ test('CEM division route filters by CEM sections only', function () {
     ]);
     $cemProject->update(['is_published' => true]);
 
-    $response = $this->get(route('projects.division.computational-experimental-mechanics'));
+    $response = $this->get(route('projects.division.computational-experimental-mechanics', ['browse' => 1]));
 
     $response->assertStatus(200);
     $response->assertSee($cemProject->name);

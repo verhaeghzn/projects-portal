@@ -1,9 +1,9 @@
 <?php
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('avatars:resize')->dailyAt('01:00');
         $schedule->command('projects:randomize-rankings')->dailyAt('02:00');
+        $schedule->command('projects:generate-search-summaries')->dailyAt('03:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         \Spatie\LaravelFlare\Facades\Flare::handles($exceptions);

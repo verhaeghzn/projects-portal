@@ -42,7 +42,7 @@
                                 Master Thesis Projects
                             </a>
                             <div class="border-t border-gray-200 my-1"></div>
-                            <a href="{{ route('projects.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                            <a href="{{ route('projects.index', ['browse' => 1]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
                                 All Projects
                             </a>
                         </div>
@@ -52,7 +52,7 @@
                 <a href="{{ route('projects.past') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Past Projects</a>
                 <a href="{{ route('contact') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Contact</a>
                 @auth
-                    <a href="{{ url('/admin') }}" class="bg-[#7fabc9] hover:bg-[#16537a] text-white px-3 py-2 text-sm font-medium font-sans rounded-md transition-colors">Naar beheer</a>
+                    <a href="{{ url('/admin') }}" class="bg-[#7fabc9] hover:bg-[#16537a] text-white px-3 py-2 text-sm font-medium font-sans rounded-md transition-colors">To admin panel</a>
                 @endauth
             </div>
 
@@ -80,7 +80,7 @@
                         {{ $division->name }}
                     </a>
                 @endforeach
-                <a href="{{ route('projects.index') }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('projects.index', ['browse' => 1]) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
                     All Projects
                 </a>
                 <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
