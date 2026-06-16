@@ -32,6 +32,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | IdP Metadata Cache TTL
+    |--------------------------------------------------------------------------
+    |
+    | How long (seconds) to cache SURF signing certificates fetched from metadata.
+    | Default: 24 hours. Run `php artisan saml:install --refresh-surf` to force refresh.
+    |
+    */
+
+    'idp_metadata_cache_ttl' => env('SAML_IDP_METADATA_CACHE_TTL', 86400),
+
+    /*
+    |--------------------------------------------------------------------------
     | Service Provider (SP) Configuration
     |--------------------------------------------------------------------------
     |

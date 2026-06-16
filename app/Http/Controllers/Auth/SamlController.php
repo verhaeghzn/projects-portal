@@ -6,6 +6,7 @@ use App\Auth\StudentsUser;
 use App\Exceptions\SamlAuthenticationException;
 use App\Helpers\SamlHelper;
 use App\Models\User;
+use App\Services\Saml\SurfIdpCertificateLoader;
 use Filament\Notifications\Notification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -134,62 +135,19 @@ class SamlController extends Controller
             }
         }
 
-        // Load IDP certificate - required for SAML authentication when wantAssertionsSigned is true
-        if (empty($config['idp']['x509cert'])) {
-            if (! empty(config('saml.surf.public_cert_path'))) {
-                // Then try file path
-                $originalPath = config('saml.surf.public_cert_path');
-                $certPath = $originalPath;
-                
-                // storage_path() returns absolute path, so if it's already that, use it
-                // Otherwise try different path resolutions
-                $pathsToTry = [
-                    $originalPath, // Try as-is first
-                ];
-                
-                // If it's not absolute, try relative to base_path
-                if (!str_starts_with($originalPath, '/')) {
-                    $pathsToTry[] = base_path($originalPath);
-                }
-                
-                // Also try direct storage_path
-                if (str_contains($originalPath, 'storage/')) {
-                    $pathsToTry[] = storage_path(str_replace('storage/', '', $originalPath));
-                }
-                
-                // Try storage_path('app/saml/surf_public.crt') directly
-                $pathsToTry[] = storage_path('app/saml/surf_public.crt');
-                
-                $found = false;
-                foreach ($pathsToTry as $tryPath) {
-                    if (file_exists($tryPath) && is_readable($tryPath)) {
-                        $certPath = $tryPath;
-                        $found = true;
-                        break;
-                    }
-                }
-                
-                if ($found) {
-                    $fileContent = file_get_contents($certPath);
-                    if (!empty($fileContent)) {
-                        $normalized = $this->normalizeCertificate($fileContent);
-                        if (!empty($normalized)) {
-                            $config['idp']['x509cert'] = $normalized;
-                            Log::debug("SAML: Loaded IDP certificate from file: {$certPath} (" . strlen($config['idp']['x509cert']) . " chars)");
-                        } else {
-                            Log::error("SAML SURF public certificate file content is invalid after normalization: {$certPath}");
-                        }
-                    } else {
-                        Log::error("SAML SURF public certificate file is empty: {$certPath}");
-                    }
-                } else {
-                    Log::error("SAML SURF public certificate not found. Tried paths: " . implode(', ', $pathsToTry));
-                    Log::error("SAML authentication will fail without the IDP certificate. Run: php artisan saml:install");
-                }
-            }
-        } else {
-            // Normalize existing certificate content
+        // Load IdP certificate(s) from SURF metadata (cached) or local PEM file
+        $idpCerts = SurfIdpCertificateLoader::load();
+        if (! empty($idpCerts['x509cert'])) {
+            $config['idp']['x509cert'] = $idpCerts['x509cert'];
+        }
+        if (! empty($idpCerts['x509certMulti'])) {
+            $config['idp']['x509certMulti'] = $idpCerts['x509certMulti'];
+        } elseif (! empty($config['idp']['x509cert'])) {
             $config['idp']['x509cert'] = $this->normalizeCertificate($config['idp']['x509cert']);
+        }
+
+        if (empty($config['idp']['x509cert'])) {
+            Log::error('SAML SURF IdP certificate could not be loaded. Run: php artisan saml:install --refresh-surf');
         }
 
         return $config;
@@ -245,6 +203,9 @@ class SamlController extends Controller
             'acs_url' => config('saml.sp.acs_url'),
             'entity_id' => config('saml.sp.entity_id'),
             'app_url' => config('app.url'),
+            'idp_cert_fp' => SurfIdpCertificateLoader::fingerprint(
+                (string) (SurfIdpCertificateLoader::load()['x509cert'] ?? '')
+            ),
         ], $extra);
 
         session(['saml_last_diagnostics' => $diagnostics]);

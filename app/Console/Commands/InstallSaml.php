@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Saml\SurfIdpCertificateLoader;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -14,7 +15,8 @@ class InstallSaml extends Command
      * @var string
      */
     protected $signature = 'saml:install
-                            {--force : Overwrite existing certificates}
+                            {--force : Overwrite existing SP certificates}
+                            {--refresh-surf : Download the latest SURF IdP signing certificate from metadata}
                             {--domain= : Domain name for the certificate (defaults to APP_URL domain)}';
 
     /**
@@ -41,11 +43,12 @@ class InstallSaml extends Command
             $this->line("Directory already exists: {$samlDir}");
         }
 
-        // Generate SP certificates
-        $this->generateSpCertificates($samlDir);
+        // Generate SP certificates (unless only refreshing SURF cert)
+        if (! $this->option('refresh-surf')) {
+            $this->generateSpCertificates($samlDir);
+        }
 
-        // Check for SURF certificate
-        $this->checkSurfCertificate($samlDir);
+        $this->refreshSurfCertificate($samlDir);
 
         // Display configuration information
         $this->displayConfigurationInfo();
@@ -131,6 +134,29 @@ class InstallSaml extends Command
         $certInfo = openssl_x509_parse($cert);
         $this->line("  Subject: {$certInfo['subject']['CN']}");
         $this->line("  Valid until: " . date('Y-m-d H:i:s', $certInfo['validTo_time_t']));
+    }
+
+    protected function refreshSurfCertificate(string $samlDir): void
+    {
+        $surfCertPath = $samlDir . '/surf_public.crt';
+        $shouldDownload = $this->option('refresh-surf') || $this->option('force') || ! File::exists($surfCertPath);
+
+        if (! $shouldDownload) {
+            $this->line("✓ SURF Conext certificate found: {$surfCertPath}");
+            $this->line('  Use --refresh-surf to download the latest certificate from metadata.');
+
+            return;
+        }
+
+        $this->info('Downloading SURF Conext signing certificate from metadata...');
+
+        try {
+            $count = SurfIdpCertificateLoader::downloadToFile($surfCertPath);
+            $this->info("✓ Downloaded {$count} signing certificate(s) to {$surfCertPath}");
+        } catch (\Throwable $e) {
+            $this->error('Failed to download SURF certificate: ' . $e->getMessage());
+            $this->checkSurfCertificate($samlDir);
+        }
     }
 
     protected function checkSurfCertificate(string $samlDir): void
