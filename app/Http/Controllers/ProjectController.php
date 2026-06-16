@@ -133,7 +133,18 @@ class ProjectController extends Controller
             $interpreted = RateLimiter::attempt(
                 $rateKey,
                 20,
-                fn () => $smartSearch->interpret($searchQuery, $selectedDivision, $selectedThesisType, $candidates),
+                fn () => $smartSearch->interpret(
+                    $searchQuery,
+                    $selectedDivision,
+                    $selectedThesisType,
+                    $candidates,
+                    [
+                        'type' => $type,
+                        'section' => $sectionSlug,
+                        'supervisor' => $supervisorSlug,
+                        'group' => $groupId,
+                    ],
+                ),
                 60
             );
 
@@ -233,6 +244,7 @@ class ProjectController extends Controller
             'selectedThesisType' => $selectedThesisType,
             'manualBrowse' => $manualBrowse,
             'manualBrowseUrl' => $manualBrowseUrl,
+            'searchSuggestions' => Division::searchSuggestionsFor(data_get($selectedDivision, 'slug')),
             'hideFooter' => ! $manualBrowse,
         ]);
     }

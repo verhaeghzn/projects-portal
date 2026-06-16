@@ -103,16 +103,47 @@ test('division routes return 200 and show project index', function () {
     $response->assertViewIs('projects.index');
     $response->assertViewHas('selectedDivision');
     $response->assertSee('Thermo-Fluids Engineering (TFE)');
+    $response->assertSee('Hydrogen experiments');
+    $response->assertSee('CFD for multiphase flows');
 
     $response = $this->get(route('projects.division.computational-experimental-mechanics'));
     $response->assertStatus(200);
     $response->assertViewIs('projects.index');
     $response->assertSee('Computational and Experimental Mechanics (CEM)');
+    $response->assertSee('Experiments with steel');
 
     $response = $this->get(route('projects.division.dynamical-systems-design'));
     $response->assertStatus(200);
     $response->assertViewIs('projects.index');
     $response->assertSee('Dynamical Systems Design (DSD)');
+    $response->assertSee('Reinforcement learning for vehicle control');
+    $response->assertDontSee('Supervisory control for robotics');
+});
+
+test('division routes use the abbreviation in the URL', function () {
+    expect(route('projects.division.thermo-fluids-engineering', absolute: false))->toBe('/projects/tfe');
+    expect(route('projects.division.computational-experimental-mechanics', absolute: false))->toBe('/projects/cem');
+    expect(route('projects.division.dynamical-systems-design', absolute: false))->toBe('/projects/dsd');
+});
+
+test('old slug-based division URLs redirect to the abbreviation URL', function () {
+    $this->get('/projects/thermo-fluids-engineering')
+        ->assertStatus(301)
+        ->assertRedirect('/projects/tfe');
+
+    $this->get('/projects/computational-experimental-mechanics')
+        ->assertStatus(301)
+        ->assertRedirect('/projects/cem');
+
+    $this->get('/projects/dynamical-systems-design')
+        ->assertStatus(301)
+        ->assertRedirect('/projects/dsd');
+});
+
+test('old slug-based division URLs preserve query parameters on redirect', function () {
+    $this->get('/projects/computational-experimental-mechanics?browse=1&type=master_thesis')
+        ->assertStatus(301)
+        ->assertRedirect('/projects/cem?browse=1&type=master_thesis');
 });
 
 test('projects index without division shows all projects', function () {

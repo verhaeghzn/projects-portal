@@ -134,7 +134,8 @@ return [
     */
 
     'project_search' => [
-        'model' => env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini'),
+        'model' => env('AI_PROJECT_SEARCH_MODEL', 'gpt-5.4-mini'),
+        'reasoning_effort' => env('AI_PROJECT_SEARCH_REASONING_EFFORT', 'high'),
         'max_projects' => (int) env('AI_PROJECT_SEARCH_MAX_PROJECTS', 100),
         'max_content_chars' => (int) env('AI_PROJECT_SEARCH_MAX_CONTENT_CHARS', 2500),
         'summary_model' => env('AI_PROJECT_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini')),
@@ -142,6 +143,9 @@ return [
         'group_summary_model' => env('AI_GROUP_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini'))),
         'group_summary_max_chars' => (int) env('AI_GROUP_SEARCH_SUMMARY_MAX_CHARS', 700),
         'group_summary_max_projects' => (int) env('AI_GROUP_SEARCH_SUMMARY_MAX_PROJECTS', 40),
+        'tag_suggestion_model' => env('AI_PROJECT_TAG_SUGGESTION_MODEL', env('AI_PROJECT_SEARCH_SUMMARY_MODEL', 'gpt-4o-mini')),
+        'cache_enabled' => env('AI_PROJECT_SEARCH_CACHE_ENABLED', true),
+        'cache_ttl' => (int) env('AI_PROJECT_SEARCH_CACHE_TTL', 21600),
     ],
 
 ];

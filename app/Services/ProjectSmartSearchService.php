@@ -8,6 +8,7 @@ use App\Data\SmartSearchCriteria;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Responses\StructuredAgentResponse;
 use Throwable;
@@ -43,17 +44,59 @@ class ProjectSmartSearchService
         ?array $selectedDivision,
         ?string $thesisType,
         Collection $candidates,
+        array $filters = [],
     ): array {
         $trimmed = trim($userQuery);
         if ($trimmed === '') {
             return ['criteria' => null, 'summary' => null, 'error' => null, 'debug' => null];
         }
 
+        if (! $this->shouldCacheInterpretation()) {
+            return $this->interpretUncached($trimmed, $selectedDivision, $thesisType, $candidates);
+        }
+
+        $cacheKey = $this->interpretCacheKey($trimmed, $selectedDivision, $thesisType, $candidates, $filters);
+        $ttl = (int) config('ai.project_search.cache_ttl', 21600);
+
+        $cached = Cache::remember(
+            $cacheKey,
+            $ttl,
+            fn () => $this->serializeInterpretResult(
+                $this->interpretUncached($trimmed, $selectedDivision, $thesisType, $candidates)
+            ),
+        );
+
+        return $this->deserializeInterpretResult($cached);
+    }
+
+    /**
+     * @param  Collection<int, Project>  $candidates
+     * @param  array{name: string, slug: string, section_slugs: list<string>}|null  $selectedDivision
+     * @param  array<string, mixed>  $filters
+     * @return array{
+     *     criteria: ?SmartSearchCriteria,
+     *     summary: ?string,
+     *     error: ?string,
+     *     debug: ?array{
+     *         model: string,
+     *         instructions: string,
+     *         user_message: array<string, mixed>,
+     *         structured_response: ?array<string, mixed>,
+     *         applied_criteria: array<string, mixed>
+     *     }
+     * }
+     */
+    private function interpretUncached(
+        string $trimmed,
+        ?array $selectedDivision,
+        ?string $thesisType,
+        Collection $candidates,
+    ): array {
         $catalog = $this->catalogBuilder->buildFromCandidates($candidates, $selectedDivision, $thesisType);
         $lookup = $this->lookupFromCatalog($catalog);
         $agent = new ProjectSearchInterpreter;
         $instructions = (string) $agent->instructions();
-        $model = config('ai.project_search.model', 'gpt-4o-mini');
+        $model = config('ai.project_search.model', 'gpt-5.4-mini');
         $userMessage = ['catalog' => $catalog, 'user_query' => $trimmed];
 
         if ($candidates->isEmpty()) {
@@ -130,6 +173,112 @@ class ProjectSmartSearchService
             'summary' => $criteria->summaryForUser,
             'error' => null,
             'debug' => $this->debugContext($instructions, $userMessage, $model, $structuredResponse, $criteria),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Project>  $candidates
+     * @param  array{name: string, slug: string, section_slugs: list<string>}|null  $selectedDivision
+     * @param  array<string, mixed>  $filters
+     */
+    private function interpretCacheKey(
+        string $query,
+        ?array $selectedDivision,
+        ?string $thesisType,
+        Collection $candidates,
+        array $filters,
+    ): string {
+        $normalizedFilters = [];
+        foreach (['type', 'section', 'supervisor', 'group'] as $filter) {
+            $value = $filters[$filter] ?? null;
+            $normalizedFilters[$filter] = ($value === null || $value === '') ? '_' : (string) $value;
+        }
+
+        $divisionKey = $selectedDivision !== null
+            ? ($selectedDivision['slug'] ?? '_').':'.implode(',', $selectedDivision['section_slugs'] ?? [])
+            : '_';
+
+        $candidateFingerprint = hash(
+            'xxh128',
+            $candidates->pluck('id')->sort()->values()->implode(','),
+        );
+
+        $payload = json_encode([
+            'v' => 1,
+            'q' => mb_strtolower($query),
+            'thesis_type' => $thesisType ?? 'master_thesis',
+            'division' => $divisionKey,
+            'filters' => $normalizedFilters,
+            'candidates' => $candidateFingerprint,
+            'model' => config('ai.project_search.model', 'gpt-5.4-mini'),
+        ], JSON_THROW_ON_ERROR);
+
+        return 'project-smart-search:'.hash('xxh128', $payload);
+    }
+
+    private function shouldCacheInterpretation(): bool
+    {
+        if (! config('ai.project_search.cache_enabled', true)) {
+            return false;
+        }
+
+        if (config('app.debug')) {
+            return false;
+        }
+
+        if (ProjectSearchInterpreter::isFaked()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array{
+     *     criteria: ?SmartSearchCriteria,
+     *     summary: ?string,
+     *     error: ?string,
+     *     debug: ?array<string, mixed>
+     * }  $result
+     * @return array{criteria: ?array<string, mixed>, summary: ?string, error: ?string}
+     */
+    private function serializeInterpretResult(array $result): array
+    {
+        $criteria = $result['criteria'];
+
+        return [
+            'criteria' => $criteria !== null ? $this->criteriaToArray($criteria) : null,
+            'summary' => $result['summary'],
+            'error' => $result['error'],
+        ];
+    }
+
+    /**
+     * @param  array{criteria: ?array<string, mixed>, summary: ?string, error: ?string}  $cached
+     * @return array{
+     *     criteria: ?SmartSearchCriteria,
+     *     summary: ?string,
+     *     error: ?string,
+     *     debug: null
+     * }
+     */
+    private function deserializeInterpretResult(array $cached): array
+    {
+        $criteriaData = $cached['criteria'] ?? null;
+
+        return [
+            'criteria' => is_array($criteriaData)
+                ? new SmartSearchCriteria(
+                    projectIds: array_values(array_map('intval', $criteriaData['project_ids'] ?? [])),
+                    summaryForUser: $criteriaData['summary_for_user'] ?? null,
+                    projectReasons: collect($criteriaData['project_reasons'] ?? [])
+                        ->mapWithKeys(fn ($reason, $id) => [(int) $id => (string) $reason])
+                        ->all(),
+                )
+                : null,
+            'summary' => $cached['summary'] ?? null,
+            'error' => $cached['error'] ?? null,
+            'debug' => null,
         ];
     }
 

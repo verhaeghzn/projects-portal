@@ -1,11 +1,15 @@
 <?php
 
+use App\Ai\Agents\ProjectTagSuggestionGenerator;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\ProjectType;
+use App\Models\Tag;
+use App\Models\TagCategory;
+use Livewire\Livewire;
 
 beforeEach(function () {
     seedTestData();
@@ -222,4 +226,49 @@ test('non-admin cannot delete project', function () {
 
     livewire(EditProject::class, ['record' => $project->getRouteKey()])
         ->assertActionHidden('delete');
+});
+
+test('can suggest tags with ai on edit project form', function () {
+    $experimental = Tag::factory()->create([
+        'name' => 'Experimental',
+        'category' => TagCategory::Nature,
+    ]);
+    $steel = Tag::factory()->create([
+        'name' => 'Steel',
+        'category' => TagCategory::Focus,
+    ]);
+
+    $project = createProject([
+        'name' => 'Steel fatigue study',
+        'short_description' => 'Mechanical testing on steel specimens.',
+        'richtext_content' => '<p>Students perform experimental fatigue tests in the lab.</p>',
+    ]);
+
+    ProjectTagSuggestionGenerator::fake([[
+        'tag_ids' => [$experimental->id, $steel->id],
+    ]]);
+
+    Livewire::test(EditProject::class, ['record' => $project->getRouteKey()])
+        ->callFormComponentAction('tags', 'suggestTags')
+        ->assertFormSet([
+            'tags' => [$experimental->id, $steel->id],
+        ]);
+});
+
+test('suggest tags action warns when project description is missing', function () {
+    Tag::factory()->create([
+        'name' => 'Experimental',
+        'category' => TagCategory::Nature,
+    ]);
+
+    Livewire::test(CreateProject::class)
+        ->fillForm([
+            'name' => 'Draft without description',
+            'short_description' => '',
+            'richtext_content' => '',
+        ])
+        ->callFormComponentAction('tags', 'suggestTags')
+        ->assertNotified('Add a title and description first');
+
+    ProjectTagSuggestionGenerator::assertNeverPrompted();
 });

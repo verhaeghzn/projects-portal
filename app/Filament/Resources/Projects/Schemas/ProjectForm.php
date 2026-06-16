@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Projects\Schemas;
 
+use App\Filament\Resources\Projects\Actions\SuggestProjectTagsAction;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\User;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
@@ -148,6 +148,8 @@ class ProjectForm
                     ->columnSpanFull(),
 
                 Select::make('tags')
+                    ->label('Tags')
+                    ->beforeLabel(SuggestProjectTagsAction::make())
                     ->relationship(
                         'tags',
                         'name',
