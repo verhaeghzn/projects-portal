@@ -695,6 +695,10 @@ class SamlController extends Controller
                 Log::warning('SAML Admin: User not found with email: ' . $email);
             }
 
+            // Remember the SURF identity so we can link it to the account once the
+            // user signs in with email + password (see ConnectPendingSurfId listener).
+            session(['saml_pending_surf_id' => $persistentId]);
+
             return $this->redirectToAdminLoginWithError($warning, 'warning');
         }
 

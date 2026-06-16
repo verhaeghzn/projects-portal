@@ -11,7 +11,7 @@ class Login extends BaseLogin
     public function getSubheading(): string | Htmlable | null
     {
         if (SamlHelper::isLoginRequired()) {
-            return 'Sign in to your account using your password or SURF Conext SSO';
+            return 'Sign in to your account using your password or TU/e Single Sign-On';
         }
         
         return 'Sign in to your account';
@@ -33,7 +33,7 @@ class Login extends BaseLogin
     protected function getSamlLoginAction(): \Filament\Actions\Action
     {
         return \Filament\Actions\Action::make('samlLogin')
-            ->label('Sign in with SURF Conext')
+            ->label('Sign in via TU/e Single Sign-On')
             ->color('primary')
             ->outlined()
             ->url(route('saml.login', ['guard' => 'web', 'return' => '/admin']))
