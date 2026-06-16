@@ -6,7 +6,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <div class="mb-6 sm:mb-8">
             <a href="{{ route('projects.index') }}"
-                class="text-[#7fabc9] hover:text-[#5a8ba8] text-sm font-medium mb-3 sm:mb-4 inline-block">
+                class="text-primary hover:text-tue-red-dark text-sm font-medium mb-3 sm:mb-4 inline-block">
                 ← Back to Projects
             </a>
 
@@ -20,7 +20,7 @@
             <div class="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
                 @foreach ($project->types as $type)
                     <span
-                        class="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-[#7fabc9] text-white">
+                        class="inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-primary text-white">
                         {{ $type->name }}
                     </span>
                 @endforeach
@@ -92,7 +92,7 @@
                                         class="w-10 h-10 sm:w-12 sm:h-12 md:w-15 md:h-15 rounded-full object-cover flex-shrink-0">
                                 @else
                                     <div
-                                        class="w-10 h-10 sm:w-12 sm:h-12 md:w-15 md:h-15 rounded-full bg-[#7fabc9] flex items-center justify-center text-white font-semibold text-base sm:text-lg flex-shrink-0">
+                                        class="w-10 h-10 sm:w-12 sm:h-12 md:w-15 md:h-15 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-base sm:text-lg flex-shrink-0">
                                         {{ substr($supervisorName, 0, 1) }}
                                     </div>
                                 @endif
@@ -103,7 +103,7 @@
                                     </div>
                                     @if (!$isExternal && $supervisor && $supervisor->email)
                                         <a href="#"
-                                            class="obfuscated-email text-[#7fabc9] hover:text-[#5a8ba8] text-xs sm:text-sm break-all"
+                                            class="obfuscated-email text-primary hover:text-tue-red-dark text-xs sm:text-sm break-all"
                                             data-encoded="{{ bin2hex($supervisor->email) }}">
                                             {{ $supervisor->email }}
                                         </a>
@@ -145,7 +145,7 @@
                                         @if ($project->organization->url)
                                             <a href="{{ $project->organization->url }}" target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="text-[#7fabc9] hover:text-[#5a8ba8] text-xs sm:text-sm break-words">
+                                                class="text-primary hover:text-tue-red-dark text-xs sm:text-sm break-words">
                                                 {{ $project->organization->name }}
                                             </a>
                                         @else
@@ -163,7 +163,7 @@
                                             @if ($group->external_url)
                                                 <a href="{{ $group->external_url }}" target="_blank"
                                                     rel="noopener noreferrer"
-                                                    class="text-[#7fabc9] hover:text-[#5a8ba8] text-xs sm:text-sm sm:text-base">
+                                                    class="text-primary hover:text-tue-red-dark text-xs sm:text-sm sm:text-base">
                                                     {{ $group->name }}
                                                 </a>
                                             @else

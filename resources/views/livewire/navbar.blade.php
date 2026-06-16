@@ -4,13 +4,12 @@
             {{-- Logo on the left --}}
             <div class="flex items-center">
                 <a href="{{ route('home') }}" class="flex items-center space-x-2 sm:space-x-4">
-                    {{-- Disabled for now --}}
-                    {{-- <img src="{{ asset('assets/logos/mom_colored.png') }}" alt="MoM Logo" class="h-10"> --}}
-                    <img src="{{ asset('assets/logos/tue_logo.png') }}" alt="TU/e Logo" class="h-6 sm:h-8">
-                    <div class="hidden sm:block border-l text-[#16537a] border-gray-300 h-8 pl-4">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-bold text-[#16537a] leading-tight">ME</span>
-                            <span class="text-xs text-[#16537a] leading-tight">Projects Portal</span>
+                    <img src="{{ asset('assets/logos/tue_logo.svg') }}" alt="TU/e Logo" class="h-6 sm:h-8 w-auto">
+                    <div class="hidden sm:block border-l border-gray-300 h-8 pl-4">
+                        <div class="flex flex-col text-tue-black">
+                            <span class="text-sm font-bold text-primary leading-tight">Mechanical Engineering</span>
+                            <span class="text-xs leading-tight text-tue-scarlet">Projects Portal</span>
+                       
                         </div>
                     </div>
                 </a>
@@ -20,7 +19,7 @@
             <div class="hidden md:flex items-center space-x-6">
                 {{-- Research Projects with dropdown --}}
                 <div class="relative group">
-                    <a href="{{ route('projects.index') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans flex items-center">
+                    <a href="{{ route('projects.index') }}" class="nav-link flex items-center">
                         Research Projects
                         <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -30,37 +29,37 @@
                     <div class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-200">
                         <div class="py-1">
                             @foreach ($divisions as $division)
-                                <a href="{{ route('projects.division.' . $division->slug) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                                <a href="{{ route('projects.division.' . $division->slug) }}" class="nav-dropdown-link">
                                     {{ $division->name }}
                                 </a>
                             @endforeach
                             <div class="border-t border-gray-200 my-1"></div>
-                            <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                            <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="nav-dropdown-link">
                                 Bachelor Thesis Projects
                             </a>
-                            <a href="{{ route('projects.index', ['type' => 'master_thesis']) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                            <a href="{{ route('projects.index', ['type' => 'master_thesis']) }}" class="nav-dropdown-link">
                                 Master Thesis Projects
                             </a>
                             <div class="border-t border-gray-200 my-1"></div>
-                            <a href="{{ route('projects.index', ['browse' => 1]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#7fabc9] hover:text-white transition-colors">
+                            <a href="{{ route('projects.index', ['browse' => 1]) }}" class="nav-dropdown-link">
                                 All Projects
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <a href="{{ route('projects.past') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Past Projects</a>
-                <a href="{{ route('contact') }}" class="text-gray-700 hover:text-[#7fabc9] px-3 py-2 text-sm font-medium font-sans">Contact</a>
+                <a href="{{ route('projects.past') }}" class="nav-link">Past Projects</a>
+                <a href="{{ route('contact') }}" class="nav-link">Contact</a>
                 @auth
-                    <a href="{{ url('/admin') }}" class="bg-[#7fabc9] hover:bg-[#16537a] text-white px-3 py-2 text-sm font-medium font-sans rounded-md transition-colors">To admin panel</a>
+                    <a href="{{ url('/admin') }}" class="btn-primary-sm">To admin panel</a>
                 @endauth
             </div>
 
             {{-- Mobile menu button --}}
-            <button 
-                id="mobile-menu-toggle" 
-                onclick="toggleMobileMenu()" 
-                class="md:hidden p-2 rounded-md text-gray-700 hover:text-[#7fabc9] hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#7fabc9]"
+            <button
+                id="mobile-menu-toggle"
+                onclick="toggleMobileMenu()"
+                class="md:hidden p-2 rounded-md text-tue-gray-light hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                 aria-expanded="false"
                 aria-controls="mobile-menu">
                 <svg id="mobile-menu-icon-open" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,27 +75,27 @@
         <div id="mobile-menu" class="md:hidden border-t border-gray-200 py-4 hidden">
             <div class="space-y-1">
                 @foreach ($divisions as $division)
-                    <a href="{{ route('projects.division.' . $division->slug) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                    <a href="{{ route('projects.division.' . $division->slug) }}" class="nav-mobile-link">
                         {{ $division->name }}
                     </a>
                 @endforeach
-                <a href="{{ route('projects.index', ['browse' => 1]) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('projects.index', ['browse' => 1]) }}" class="nav-mobile-link">
                     All Projects
                 </a>
-                <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('projects.index', ['type' => 'bachelor_thesis']) }}" class="nav-mobile-link">
                     Bachelor Thesis Projects
                 </a>
-                <a href="{{ route('projects.index', ['type' => 'master_thesis']) }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('projects.index', ['type' => 'master_thesis']) }}" class="nav-mobile-link">
                     Master Thesis Projects
                 </a>
-                <a href="{{ route('projects.past') }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('projects.past') }}" class="nav-mobile-link">
                     Past Projects
                 </a>
-                <a href="{{ route('contact') }}" class="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-[#7fabc9] hover:text-white rounded-md transition-colors">
+                <a href="{{ route('contact') }}" class="nav-mobile-link">
                     Contact
                 </a>
                 @auth
-                    <a href="{{ url('/admin') }}" class="block px-4 py-3 text-base font-medium text-white bg-[#7fabc9] hover:bg-[#16537a] rounded-md transition-colors">
+                    <a href="{{ url('/admin') }}" class="block px-4 py-3 text-base font-medium text-white bg-primary hover:bg-tue-red-dark rounded-md transition-colors">
                         Staff access
                     </a>
                 @endauth
@@ -111,7 +110,7 @@
         const toggle = document.getElementById('mobile-menu-toggle');
         const iconOpen = document.getElementById('mobile-menu-icon-open');
         const iconClose = document.getElementById('mobile-menu-icon-close');
-        
+
         if (menu.classList.contains('hidden')) {
             menu.classList.remove('hidden');
             iconOpen.classList.add('hidden');

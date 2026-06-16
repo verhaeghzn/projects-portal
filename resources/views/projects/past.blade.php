@@ -16,12 +16,12 @@
                     @if($project->featured_image)
                         <img src="{{ \Illuminate\Support\Facades\Storage::url($project->featured_image) }}" alt="{{ $project->name }}" class="w-full h-40 sm:h-48 object-cover">
                     @else
-                        <div class="w-full h-40 sm:h-48 bg-gradient-to-br from-[#7fabc9] to-[#5a8ba8] flex items-center justify-center">
+                        <div class="w-full h-40 sm:h-48 bg-gradient-to-br from-primary to-tue-donkerblauw flex items-center justify-center">
                             <span class="text-white text-xl sm:text-2xl font-bold">{{ substr($project->name, 0, 1) }}</span>
                         </div>
                     @endif
                     <div class="p-4 sm:p-6">
-                        <h2 class="text-base sm:text-lg lg:text-xl font-heading text-gray-900 mb-2 group-hover:text-[#7fabc9] transition-colors">{{ $project->name }}</h2>
+                        <h2 class="text-base sm:text-lg lg:text-xl font-heading text-gray-900 mb-2 group-hover:text-primary transition-colors">{{ $project->name }}</h2>
                         <p class="text-gray-600 text-sm mb-3 sm:mb-4 line-clamp-3">{{ $project->short_description }}</p>
                         
                         @if($project->tags->count() > 0)
@@ -54,7 +54,7 @@
                                                          alt="{{ $supervisor->name }}" 
                                                          class="w-full h-full object-cover">
                                                 @else
-                                                    <div class="w-full h-full bg-[#7fabc9] flex items-center justify-center text-white text-xs font-medium">
+                                                    <div class="w-full h-full bg-primary flex items-center justify-center text-white text-xs font-medium">
                                                         {{ substr($supervisor->name, 0, 1) }}
                                                     </div>
                                                 @endif

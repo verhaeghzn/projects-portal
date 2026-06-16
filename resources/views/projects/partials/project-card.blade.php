@@ -6,7 +6,7 @@
             alt="{{ $project->name }}" class="w-full aspect-[592/192] object-cover">
     @else
         <div
-            class="w-full aspect-[592/192] bg-gradient-to-br from-[#7fabc9] to-[#5a8ba8] flex items-center justify-center">
+            class="w-full aspect-[592/192] bg-gradient-to-br from-primary to-tue-donkerblauw flex items-center justify-center">
             <span
                 class="text-white text-xl sm:text-2xl font-bold">{{ substr($project->name, 0, 1) }}</span>
         </div>
@@ -14,7 +14,7 @@
     <div class="p-4 sm:p-6 flex flex-col flex-grow">
         <div class="flex items-start justify-between mb-2 gap-2">
             <h2
-                class="text-base sm:text-lg font-heading text-gray-900 group-hover:text-[#7fabc9] transition-colors flex-1">
+                class="text-base sm:text-lg font-heading text-tue-black group-hover:text-primary transition-colors flex-1">
                 {{ $project->name }}</h2>
         </div>
         <p class="text-gray-600 text-sm mb-3 sm:mb-4 line-clamp-3">{{ $project->short_description }}
@@ -59,7 +59,7 @@
                                                 class="w-full h-full object-cover">
                                         @else
                                             <div
-                                                class="w-full h-full bg-[#7fabc9] flex items-center justify-center text-white text-xs font-medium">
+                                                class="w-full h-full bg-primary flex items-center justify-center text-white text-xs font-medium">
                                                 {{ substr($supervisor->name, 0, 1) }}
                                             </div>
                                         @endif
@@ -68,7 +68,7 @@
                                     <div class="relative {{ $index === 0 ? 'z-30' : ($index === 1 ? 'z-20' : 'z-10') }} w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white overflow-hidden"
                                         title="{{ $supervisorLink->name }}">
                                         <div
-                                            class="w-full h-full bg-[#7fabc9] flex items-center justify-center text-white text-xs font-medium">
+                                            class="w-full h-full bg-primary flex items-center justify-center text-white text-xs font-medium">
                                             {{ substr($supervisorLink->name, 0, 1) }}
                                         </div>
                                     </div>

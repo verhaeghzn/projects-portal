@@ -37,7 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->passwordReset()
             ->colors([
-                'primary' => Color::hex('#7fabc9'),
+                'primary' => Color::hex('#C72026'),
             ])
             ->navigationGroups([
                 'Projects',

@@ -3,18 +3,16 @@
 @section('title', 'Complete Your Registration')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-[#7fabc9]/10 to-[#7fabc9]/20 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gradient-to-br from-primary/10 to-primary/20 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-2xl mx-auto">
         <div class="bg-white rounded-lg shadow-xl overflow-hidden">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-[#7fabc9] to-[#5a8ba8] px-8 py-6">
+            <div class="bg-gradient-to-r from-primary to-tue-donkerblauw px-8 py-6">
                 <div class="text-center">
                     <h1 class="text-3xl font-bold text-white mb-2">TU/e</h1>
                     <h2 class="text-xl text-white">Complete Your Registration</h2>
                 </div>
             </div>
 
-            <!-- Content -->
             <div class="px-8 py-8">
                 @if(session('success'))
                     <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -35,15 +33,13 @@
                 <form action="{{ route('onboarding.store', $token) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                     @csrf
 
-                    <!-- Welcome Message -->
                     <div class="mb-6">
-                        <p class="text-gray-700 text-lg">Welcome, <strong>{{ $user->name }}</strong>!</p>
-                        <p class="text-gray-600 mt-2">Please complete your account setup by filling in the information below.</p>
+                        <p class="text-tue-gray text-lg">Welcome, <strong class="text-tue-black">{{ $user->name }}</strong>!</p>
+                        <p class="text-tue-gray mt-2">Please complete your account setup by filling in the information below.</p>
                     </div>
 
-                    <!-- Avatar Upload -->
                     <div>
-                        <label for="avatar" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="avatar" class="block text-sm font-medium text-tue-black mb-2">
                             Profile Picture (Optional)
                         </label>
                         <div class="flex items-center space-x-4">
@@ -55,58 +51,55 @@
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <input type="file" 
-                                       id="avatar" 
-                                       name="avatar" 
+                                <input type="file"
+                                       id="avatar"
+                                       name="avatar"
                                        accept="image/*"
-                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#7fabc9]/10 file:text-[#7fabc9] hover:file:bg-[#7fabc9]/20"
+                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                                        onchange="previewAvatar(this)">
                                 <p class="mt-1 text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Password -->
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                            Password <span class="text-[#7fabc9]">*</span>
+                        <label for="password" class="block text-sm font-medium text-tue-black mb-2">
+                            Password <span class="text-primary">*</span>
                         </label>
-                        <input type="password" 
-                               id="password" 
-                               name="password" 
+                        <input type="password"
+                               id="password"
+                               name="password"
                                required
                                minlength="8"
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#7fabc9] focus:border-[#7fabc9] sm:text-sm @error('password') border-red-500 @enderror">
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm input-tue sm:text-sm @error('password') border-red-500 @enderror">
                         @error('password')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <!-- Password Confirmation -->
                     <div>
-                        <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
-                            Confirm Password <span class="text-[#7fabc9]">*</span>
+                        <label for="password_confirmation" class="block text-sm font-medium text-tue-black mb-2">
+                            Confirm Password <span class="text-primary">*</span>
                         </label>
-                        <input type="password" 
-                               id="password_confirmation" 
-                               name="password_confirmation" 
+                        <input type="password"
+                               id="password_confirmation"
+                               name="password_confirmation"
                                required
                                minlength="8"
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#7fabc9] focus:border-[#7fabc9] sm:text-sm @error('password_confirmation') border-red-500 @enderror">
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm input-tue sm:text-sm @error('password_confirmation') border-red-500 @enderror">
                     </div>
 
-                    <!-- Group Selection -->
                     <div>
-                        <label for="group_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            Select Your Group <span class="text-[#7fabc9]">*</span>
+                        <label for="group_id" class="block text-sm font-medium text-tue-black mb-2">
+                            Select Your Group <span class="text-primary">*</span>
                         </label>
-                        <select id="group_id" 
-                                name="group_id" 
+                        <select id="group_id"
+                                name="group_id"
                                 required
                                 @if($user->group_id)
                                     disabled
                                 @endif
-                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#7fabc9] focus:border-[#7fabc9] sm:text-sm @if($user->group_id) bg-gray-100 @enderror @error('group_id') border-red-500 @enderror">
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm input-tue sm:text-sm @if($user->group_id) bg-gray-100 @enderror @error('group_id') border-red-500 @enderror">
                             <option value="">-- Please select a group --</option>
                             @foreach($groups as $group)
                                 <option value="{{ $group['id'] }}" {{ old('group_id', $user->group_id) == $group['id'] ? 'selected' : '' }}>
@@ -119,10 +112,8 @@
                         @enderror
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="pt-4">
-                        <button type="submit" 
-                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7fabc9] hover:bg-[#5a8ba8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7fabc9] transition-colors">
+                        <button type="submit" class="w-full btn-primary">
                             Complete Registration
                         </button>
                     </div>

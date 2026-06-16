@@ -15,7 +15,7 @@
                 {{-- Empty state: centered hero --}}
                 <div class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20">
                     <div class="w-full max-w-2xl text-center">
-                        <h1 class="text-3xl sm:text-4xl font-heading text-gray-900 mb-3 tracking-tight">
+                        <h1 class="text-3xl sm:text-4xl font-heading text-tue-black mb-3 tracking-tight">
                             Find your research project
                             @if (!empty($selectedDivision))
                                 within {{ $selectedDivision['abbrev'] ?? $selectedDivision['name'] }}
@@ -38,7 +38,7 @@
 
                         <p class="mt-8">
                             <a href="{{ $manualBrowseUrl }}"
-                                class="text-sm text-gray-400 hover:text-[#7fabc9] transition-colors">
+                                class="text-sm text-gray-400 hover:text-primary transition-colors">
                                 or browse projects manually
                             </a>
                         </p>
@@ -50,7 +50,7 @@
                     {{-- Assistant response --}}
                     <div class="border-b border-gray-100">
                         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex gap-3 sm:gap-4">
-                            <div class="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#16537a] flex items-center justify-center text-white text-[10px] sm:text-xs font-bold select-none mt-0.5"
+                            <div class="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-tue-donkerblauw flex items-center justify-center text-white text-[10px] sm:text-xs font-bold select-none mt-0.5"
                                 aria-hidden="true">ME</div>
                             <div class="flex-1 min-w-0">
                                 @if (!empty($smartSearchError))
@@ -129,7 +129,7 @@
                         @include('projects.partials.search-form', ['compact' => true])
                         <p class="mt-2 text-center">
                             <a href="{{ $manualBrowseUrl }}"
-                                class="text-xs text-gray-400 hover:text-[#7fabc9] transition-colors">
+                                class="text-xs text-gray-400 hover:text-primary transition-colors">
                                 or browse projects manually
                             </a>
                         </p>
@@ -247,7 +247,7 @@
 
                 {{-- Mobile filter toggle button --}}
                 <button id="filter-toggle"
-                    class="sm:hidden w-full flex items-center justify-between px-4 py-3 mb-3 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#7fabc9] focus:ring-offset-2 transition-colors"
+                    class="sm:hidden w-full flex items-center justify-between px-4 py-3 mb-3 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
                     onclick="toggleFilters()" aria-expanded="false" aria-controls="filter-section">
                     <span>Filters</span>
                     <svg id="filter-toggle-icon" class="h-5 w-5 text-gray-500 transition-transform duration-200"
@@ -262,7 +262,7 @@
                     <div class="flex flex-col w-full sm:w-auto">
                         <label for="type-filter" class="text-xs font-medium text-gray-600 mb-1">Filter by type</label>
                         <select id="type-filter" onchange="updateFilters('type', this.value)"
-                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm focus:ring-[#7fabc9] focus:border-[#7fabc9] w-full">
+                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm input-tue w-full">
                             <option value="">All Projects</option>
                             <option value="bachelor_thesis" {{ request('type') === 'bachelor_thesis' ? 'selected' : '' }}>
                                 Bachelor Thesis Projects</option>
@@ -274,7 +274,7 @@
                     <div class="flex flex-col w-full sm:w-auto">
                         <label for="section-filter" class="text-xs font-medium text-gray-600 mb-1">Section</label>
                         <select id="section-filter" onchange="updateFilters('section', this.value)"
-                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm focus:ring-[#7fabc9] focus:border-[#7fabc9] w-full">
+                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm input-tue w-full">
                             <option value="">All</option>
                             @foreach ($sections as $section)
                                 <option value="{{ $section->slug }}"
@@ -287,7 +287,7 @@
                     <div class="flex flex-col w-full sm:w-auto">
                         <label for="supervisor-filter" class="text-xs font-medium text-gray-600 mb-1">Supervisor</label>
                         <select id="supervisor-filter" onchange="updateFilters('supervisor', this.value)"
-                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm focus:ring-[#7fabc9] focus:border-[#7fabc9] w-full">
+                            class="border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm input-tue w-full">
                             <option value="">All</option>
                             @foreach ($supervisors as $supervisor)
                                 <option value="{{ $supervisor['slug'] }}"

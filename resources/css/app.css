@@ -13,8 +13,17 @@
     --font-sans: 'Lato', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-heading: 'Gilroy', ui-sans-serif, system-ui, sans-serif;
-    --color-primary: #7fabc9;
-    
+
+    --color-tue-red: #C72026;
+    --color-tue-red-dark: #A01A1F;
+    --color-tue-donkerblauw: #28276B;
+    --color-tue-blauw: #3662AE;
+    --color-tue-black: #231F20;
+    --color-tue-gray: #808284;
+    --color-tue-gray-light: #5F5A5C;
+
+    --color-primary: var(--color-tue-red);
+
     --font-size-xs: 0.6875rem;
     --font-size-sm: 0.8125rem;
     --font-size-base: 0.9375rem;
@@ -46,13 +55,13 @@
             min-width: 44px;
         }
     }
-    
+
     /* Improve text readability on mobile */
     body {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
-    
+
     /* Better mobile scrolling */
     html {
         -webkit-overflow-scrolling: touch;
@@ -61,17 +70,57 @@
 
 /* Pagination mobile improvements */
 @layer components {
+    .btn-primary {
+        @apply inline-flex items-center justify-center bg-primary text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium hover:bg-tue-red-dark transition-colors text-sm sm:text-base;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center bg-white text-primary border-2 border-primary px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium hover:bg-gray-50 transition-colors text-sm sm:text-base;
+    }
+
+    .btn-primary-sm {
+        @apply inline-flex items-center justify-center bg-primary text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-tue-red-dark transition-colors;
+    }
+
+    .btn-primary-hero {
+        @apply inline-flex items-center justify-center bg-primary text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium hover:bg-tue-red-dark transition-colors text-sm sm:text-base;
+    }
+
+    .btn-secondary-hero {
+        @apply inline-flex items-center justify-center bg-transparent text-white border-2 border-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium hover:bg-white/10 transition-colors text-sm sm:text-base;
+    }
+
+    .link-primary {
+        @apply text-primary hover:text-tue-red-dark hover:underline transition-colors;
+    }
+
+    .nav-link {
+        @apply text-tue-gray-light hover:text-primary px-3 py-2 text-sm font-medium font-sans transition-colors;
+    }
+
+    .nav-dropdown-link {
+        @apply block px-4 py-2 text-sm text-tue-gray-light hover:bg-gray-50 hover:text-primary transition-colors;
+    }
+
+    .nav-mobile-link {
+        @apply block px-4 py-3 text-base font-medium text-tue-gray-light hover:bg-gray-50 hover:text-primary rounded-md transition-colors;
+    }
+
+    .input-tue {
+        @apply border border-gray-300 rounded-md focus:ring-primary focus:border-primary;
+    }
+
     @media (max-width: 640px) {
         .pagination {
             @apply flex flex-wrap gap-2 justify-center;
         }
-        
+
         .pagination a,
         .pagination span {
             @apply min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-2 text-sm;
         }
     }
-    
+
     /* Filter section transitions for mobile */
     @media (max-width: 640px) {
         .filter-section-mobile {
@@ -81,7 +130,7 @@
             opacity: 0;
             transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
         }
-        
+
         .filter-section-mobile.filter-visible {
             display: flex;
             flex-direction: column;
