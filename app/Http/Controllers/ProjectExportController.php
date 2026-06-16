@@ -2,90 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use Filament\Facades\Filament;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Exports\DivisionProjectsExport;
+use App\Models\Division;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProjectExportController extends Controller
 {
     /**
-     * Stream a CSV with all projects containing only the information needed to
-     * divide/assign projects (numbers, titles, division, section, supervisors, ...).
-     * Descriptions, images and rich content are intentionally left out.
+     * Download an Excel (.xlsx) file with the projects of a single division,
+     * containing only the information needed to divide/assign projects
+     * (numbers, titles, section, supervisors, ...). Descriptions, images and
+     * rich content are intentionally left out.
+     *
+     * Administrators may export any division; other holders of the
+     * "export division projects" permission may only export their own division.
      */
-    public function __invoke(): StreamedResponse
+    public function __invoke(Division $division): BinaryFileResponse
     {
-        abort_unless(
-            (bool) auth()->user()?->canAccessPanel(Filament::getPanel('admin')),
-            403
+        $user = auth()->user();
+
+        $canExport = $user && (
+            $user->hasRole('Administrator')
+            || ($user->can('export division projects')
+                && $user->group?->section?->division_id === $division->id)
         );
 
-        $columns = [
-            'Project number',
-            'Title',
-            'Division',
-            'Section',
-            'Group',
-            'Type(s)',
-            'Supervisors',
-            'Owner',
-            'Organization',
-            'Status',
-            'Student',
-            'Published',
-            'Created at',
-        ];
+        abort_unless($canExport, 403);
 
-        $filename = 'projects-export-'.now()->format('Y-m-d').'.csv';
+        $filename = 'projects-'.Str::slug($division->name).'-'.now()->format('Y-m-d').'.xlsx';
 
-        return response()->streamDownload(function () use ($columns) {
-            $handle = fopen('php://output', 'w');
-
-            // UTF-8 BOM so Excel renders accented characters correctly.
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            // Semicolon delimiter matches the default Excel separator in NL/EU locales.
-            fputcsv($handle, $columns, ';');
-
-            Project::query()
-                ->with([
-                    'supervisorLinks.supervisor.group.section.division',
-                    'owner',
-                    'organization',
-                    'types',
-                ])
-                ->orderBy('project_number')
-                ->chunk(200, function ($projects) use ($handle) {
-                    foreach ($projects as $project) {
-                        $section = $project->section;
-                        $group = $project->group;
-
-                        $supervisors = $project->supervisorLinks
-                            ->map(fn ($link) => $link->name)
-                            ->filter()
-                            ->implode(', ');
-
-                        fputcsv($handle, [
-                            $project->project_number,
-                            $project->name,
-                            $section?->division?->name,
-                            $section?->name,
-                            $group?->name,
-                            $project->types->pluck('name')->implode(', '),
-                            $supervisors,
-                            $project->owner?->name,
-                            $project->organization?->name,
-                            $project->is_taken ? 'Taken' : 'Available',
-                            $project->student_name,
-                            $project->is_published ? 'Yes' : 'No',
-                            $project->created_at?->format('Y-m-d'),
-                        ], ';');
-                    }
-                });
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return Excel::download(new DivisionProjectsExport($division), $filename);
     }
 }

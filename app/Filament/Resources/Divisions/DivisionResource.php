@@ -58,6 +58,11 @@ class DivisionResource extends Resource
                     ->color('primary'),
             ])
             ->recordActions([
+                \Filament\Actions\Action::make('exportProjects')
+                    ->label('Export projects (Excel)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->url(fn (Division $record): string => route('admin.divisions.projects.export', $record)),
                 \Filament\Actions\EditAction::make(),
             ])
             ->toolbarActions([

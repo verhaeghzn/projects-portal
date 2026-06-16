@@ -59,10 +59,10 @@ Route::middleware($middleware)->group(function () {
 // are gated for guests inside ProjectController::show.
 Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
 
-// Backend project export (CSV) used by divisions/sections to divide projects.
-Route::get('/admin/projects/export', ProjectExportController::class)
+// Backend project export (CSV) used by a division to divide its own projects.
+Route::get('/admin/divisions/{division}/projects/export', ProjectExportController::class)
     ->middleware(['web', 'auth'])
-    ->name('admin.projects.export');
+    ->name('admin.divisions.projects.export');
 
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');

@@ -34,6 +34,7 @@ class RolePermissionSeeder extends Seeder
             'manage tags',
             'manage users',
             'manage organizations',
+            'export division projects',
         ];
 
         foreach ($permissions as $permission) {
@@ -49,6 +50,7 @@ class RolePermissionSeeder extends Seeder
             'create projects',
             'update projects',
             'manage organizations',
+            'export division projects',
         ]);
 
         // Assign permissions to Researcher
@@ -66,6 +68,7 @@ class RolePermissionSeeder extends Seeder
             'update projects',
             'delete projects',
             'manage organizations',
+            'export division projects',
         ]);
     }
 }

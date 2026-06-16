@@ -144,6 +144,28 @@ class Project extends Model
             ->whereNull('student_email');
     }
 
+    /**
+     * Projects whose primary (lowest order_rank) internal supervisor belongs to the given division.
+     * Matches how division exports and project numbers derive the section.
+     */
+    public function scopeInDivision($query, int $divisionId)
+    {
+        return $query->whereHas('supervisorLinks', function ($supervisorLinkQuery) use ($divisionId) {
+            $supervisorLinkQuery
+                ->where('supervisor_type', User::class)
+                ->whereRaw('project_supervisor.order_rank = (
+                    SELECT MIN(ps2.order_rank)
+                    FROM project_supervisor ps2
+                    WHERE ps2.project_id = project_supervisor.project_id
+                )')
+                ->whereHas('supervisor', function ($supervisorQuery) use ($divisionId) {
+                    $supervisorQuery->whereHas('group.section', function ($sectionQuery) use ($divisionId) {
+                        $sectionQuery->where('division_id', $divisionId);
+                    });
+                });
+        });
+    }
+
     public function scopePast($query)
     {
         return $query->where(function ($q) {

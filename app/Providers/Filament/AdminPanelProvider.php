@@ -15,7 +15,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -66,7 +65,7 @@ class AdminPanelProvider extends PanelProvider
                     ->setIcon('heroicon-o-user')
                     ->shouldShowAvatarForm()
                     ->shouldRegisterNavigation(false)
-                    ->customProfileComponents([SurfConextProfileSection::class])
+                    ->customProfileComponents([SurfConextProfileSection::class]),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -78,7 +77,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\ProjectsStatsWidget::class,
                 \App\Filament\Widgets\RecentProjectsTableWidget::class,
                 AccountWidget::class,
-                \App\Filament\Widgets\ExportProjectsWidget::class,
+                \App\Filament\Widgets\ExportMyDivisionWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
