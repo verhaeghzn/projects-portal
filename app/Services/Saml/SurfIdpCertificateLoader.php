@@ -32,6 +32,14 @@ class SurfIdpCertificateLoader
             return self::withFingerprint($fromMetadata);
         }
 
+        $fromPem = self::loadFromAssertionSigningPem();
+
+        if ($fromPem !== null) {
+            self::$lastSource = 'pem_url';
+
+            return self::withFingerprint($fromPem);
+        }
+
         $fromFile = self::loadFromFile();
 
         if ($fromFile !== []) {
@@ -86,6 +94,55 @@ class SurfIdpCertificateLoader
     }
 
     /**
+     * @return array{x509cert?: string, x509certMulti?: array{signing: string[]}}|null
+     */
+    protected static function loadFromAssertionSigningPem(): ?array
+    {
+        $pemUrl = (string) config('saml.surf.assertion_signing_cert_url');
+        if ($pemUrl === '') {
+            return null;
+        }
+
+        try {
+            $pem = self::fetchUrl($pemUrl);
+            $certs = self::parsePemCertificates($pem);
+
+            if ($certs === []) {
+                return null;
+            }
+
+            return self::certsToIdpConfig($certs);
+        } catch (\Throwable $e) {
+            Log::warning('SAML: Could not load SURF assertion signing PEM', [
+                'url' => $pemUrl,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    protected static function fetchUrl(string $url): string
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $body = curl_exec($ch);
+        if ($body === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \RuntimeException($error);
+        }
+        curl_close($ch);
+
+        return $body;
+    }
+
+    /**
      * @return array{x509cert?: string, x509certMulti?: array{signing: string[]}}
      */
     public static function parseMetadataUrl(string $metadataUrl, string $entityId): array
@@ -116,18 +173,7 @@ class SurfIdpCertificateLoader
         }
 
         try {
-            $ch = curl_init($pemUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_SSL_VERIFYPEER => true,
-            ]);
-            $pem = curl_exec($ch);
-            if ($pem === false) {
-                throw new \RuntimeException(curl_error($ch));
-            }
-
+            $pem = self::fetchUrl($pemUrl);
             $extra = self::parsePemCertificates($pem);
             $existing = $certs['x509certMulti']['signing'] ?? [$certs['x509cert'] ?? ''];
             $merged = array_values(array_unique(array_merge($existing, $extra)));

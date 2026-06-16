@@ -63,28 +63,31 @@ class SamlController extends Controller
         $this->configureOneLoginUtils();
 
         $settings = $this->getSamlSettings();
-        
-        // Validate that required certificates are present
-        if (empty($settings['idp']['x509cert'])) {
+
+        $hasIdpCert = ! empty($settings['idp']['x509cert'])
+            || ! empty($settings['idp']['certFingerprint'])
+            || ! empty($settings['idp']['x509certMulti']['signing']);
+
+        if (! $hasIdpCert) {
             $certPath = config('saml.surf.public_cert_path');
-            $triedPaths = [
-                $certPath,
-                base_path($certPath),
-                storage_path('app/saml/surf_public.crt'),
-            ];
-            
-            Log::error('SAML IDP certificate not found. Tried paths: ' . implode(', ', $triedPaths));
+            Log::error('SAML IdP certificate not configured', [
+                'cert_path' => $certPath,
+                'metadata_url' => config('saml.surf.metadata_url'),
+                'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
+            ]);
             throw new \RuntimeException(
-                'SURF Conext certificate is required but not found. ' .
-                'Certificate path: ' . $certPath . '. ' .
-                'Please download it using: php artisan saml:install ' .
-                'or set SURF_PUBLIC_CERT environment variable.'
+                'SURF Conext signing certificate could not be loaded. ' .
+                'Run: php artisan saml:install --refresh-surf ' .
+                'or ensure the server can reach ' . config('saml.surf.metadata_url')
             );
         }
-        
-        // Log certificate info for debugging (first 50 chars only)
-        $certPreview = substr($settings['idp']['x509cert'], 0, 50);
-        Log::debug("SAML IDP certificate loaded: {$certPreview}... (total: " . strlen($settings['idp']['x509cert']) . " chars)");
+
+        if (! empty($settings['idp']['x509cert'])) {
+            $certPreview = substr($settings['idp']['x509cert'], 0, 50);
+            Log::debug("SAML IDP certificate loaded: {$certPreview}... (total: " . strlen($settings['idp']['x509cert']) . " chars)");
+        } elseif (! empty($settings['idp']['certFingerprint'])) {
+            Log::debug('SAML IDP certificate pinned by fingerprint: ' . substr($settings['idp']['certFingerprint'], 0, 16) . '...');
+        }
         
         try {
             return new SamlAuth($settings);
@@ -141,14 +144,14 @@ class SamlController extends Controller
         if (! empty($idpCerts['x509certMulti']['signing']) && count($idpCerts['x509certMulti']['signing']) > 1) {
             $config['idp']['x509certMulti'] = $idpCerts['x509certMulti'];
             $config['idp']['x509cert'] = $idpCerts['x509cert'] ?? '';
+        } elseif (! empty($idpCerts['x509cert'])) {
+            $config['idp']['x509cert'] = $idpCerts['x509cert'];
         } elseif (! empty($idpCerts['certFingerprint'])) {
-            // Pin via SHA-256 fingerprint; validate using cert embedded in SAML response KeyInfo
+            // Fallback: pin via SHA-256 fingerprint when PEM is unavailable
             $config['idp']['certFingerprint'] = $idpCerts['certFingerprint'];
             $config['idp']['certFingerprintAlgorithm'] = $idpCerts['certFingerprintAlgorithm'] ?? 'sha256';
             $config['idp']['x509cert'] = '';
             unset($config['idp']['x509certMulti']);
-        } elseif (! empty($idpCerts['x509cert'])) {
-            $config['idp']['x509cert'] = $idpCerts['x509cert'];
         } elseif (! empty($config['idp']['x509cert'])) {
             $config['idp']['x509cert'] = $this->normalizeCertificate($config['idp']['x509cert']);
         }
