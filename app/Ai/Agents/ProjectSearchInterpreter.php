@@ -7,17 +7,40 @@ use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider(Lab::OpenAI)]
-#[Model('gpt-4o-mini')]
-#[Timeout(90)]
-class ProjectSearchInterpreter implements Agent, HasStructuredOutput
+#[Model('gpt-5.4-mini')]
+#[Timeout(120)]
+class ProjectSearchInterpreter implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use Promptable;
+
+    /**
+     * Get provider-specific generation options.
+     *
+     * @return array<string, mixed>
+     */
+    public function providerOptions(Lab|string $provider): array
+    {
+        if ($provider !== Lab::OpenAI) {
+            return [];
+        }
+
+        $effort = config('ai.project_search.reasoning_effort');
+
+        if (! filled($effort)) {
+            return [];
+        }
+
+        return [
+            'reasoning' => ['effort' => $effort],
+        ];
+    }
 
     /**
      * Get the instructions that the agent should follow.

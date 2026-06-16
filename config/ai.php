@@ -134,7 +134,8 @@ return [
     */
 
     'project_search' => [
-        'model' => env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini'),
+        'model' => env('AI_PROJECT_SEARCH_MODEL', 'gpt-5.4-mini'),
+        'reasoning_effort' => env('AI_PROJECT_SEARCH_REASONING_EFFORT', 'high'),
         'max_projects' => (int) env('AI_PROJECT_SEARCH_MAX_PROJECTS', 100),
         'max_content_chars' => (int) env('AI_PROJECT_SEARCH_MAX_CONTENT_CHARS', 2500),
         'summary_model' => env('AI_PROJECT_SEARCH_SUMMARY_MODEL', env('AI_PROJECT_SEARCH_MODEL', 'gpt-4o-mini')),

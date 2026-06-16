@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use GeneaLabs\LaravelModelCaching\Traits\Cachable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
@@ -19,7 +20,7 @@ use Spatie\Sluggable\SlugOptions;
 class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasSlug;
+    use HasFactory, Notifiable, HasRoles, HasSlug, Cachable;
 
     /**
      * The attributes that are mass assignable.

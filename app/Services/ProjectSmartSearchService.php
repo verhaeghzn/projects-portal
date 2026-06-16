@@ -53,7 +53,7 @@ class ProjectSmartSearchService
         $lookup = $this->lookupFromCatalog($catalog);
         $agent = new ProjectSearchInterpreter;
         $instructions = (string) $agent->instructions();
-        $model = config('ai.project_search.model', 'gpt-4o-mini');
+        $model = config('ai.project_search.model', 'gpt-5.4-mini');
         $userMessage = ['catalog' => $catalog, 'user_query' => $trimmed];
 
         if ($candidates->isEmpty()) {
