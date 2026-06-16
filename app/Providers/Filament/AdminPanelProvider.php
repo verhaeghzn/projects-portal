@@ -78,6 +78,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\ProjectsStatsWidget::class,
                 \App\Filament\Widgets\RecentProjectsTableWidget::class,
                 AccountWidget::class,
+                \App\Filament\Widgets\ExportProjectsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

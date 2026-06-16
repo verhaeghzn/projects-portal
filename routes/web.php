@@ -6,6 +6,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectExportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,11 @@ Route::middleware($middleware)->group(function () {
 // precedence. Publicly published projects are reachable without auth; other projects
 // are gated for guests inside ProjectController::show.
 Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
+
+// Backend project export (CSV) used by divisions/sections to divide projects.
+Route::get('/admin/projects/export', ProjectExportController::class)
+    ->middleware(['web', 'auth'])
+    ->name('admin.projects.export');
 
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');
