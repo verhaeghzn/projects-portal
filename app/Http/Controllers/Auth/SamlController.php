@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Auth\StudentsUser;
+use App\Exceptions\SamlAuthenticationException;
 use App\Helpers\SamlHelper;
 use App\Models\User;
 use Filament\Notifications\Notification;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use OneLogin\Saml2\Auth as SamlAuth;
 use OneLogin\Saml2\Settings;
 use OneLogin\Saml2\Utils;
+use Spatie\LaravelFlare\Facades\Flare;
 
 class SamlController extends Controller
 {
@@ -27,8 +29,38 @@ class SamlController extends Controller
             abort(503, 'SAML authentication is not configured. Please set the required environment variables.');
         }
     }
+
+    /**
+     * Pin OneLogin URL detection to APP_URL so destination validation works behind reverse proxies.
+     */
+    protected function configureOneLoginUtils(): void
+    {
+        Utils::setProxyVars(true);
+
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        $parts = parse_url($baseUrl);
+
+        if (! empty($parts['host'])) {
+            Utils::setSelfHost($parts['host']);
+        }
+
+        if (! empty($parts['scheme'])) {
+            Utils::setSelfProtocol($parts['scheme']);
+        }
+
+        if (! empty($parts['port'])) {
+            Utils::setSelfPort((int) $parts['port']);
+        } elseif (($parts['scheme'] ?? '') === 'https') {
+            Utils::setSelfPort(443);
+        } elseif (($parts['scheme'] ?? '') === 'http') {
+            Utils::setSelfPort(80);
+        }
+    }
+
     protected function getSamlAuth(?string $guard = null): SamlAuth
     {
+        $this->configureOneLoginUtils();
+
         $settings = $this->getSamlSettings();
         
         // Validate that required certificates are present
@@ -104,12 +136,7 @@ class SamlController extends Controller
 
         // Load IDP certificate - required for SAML authentication when wantAssertionsSigned is true
         if (empty($config['idp']['x509cert'])) {
-            // First try environment variable (can be PEM or base64)
-            $certContent = env('SURF_PUBLIC_CERT');
-            if (!empty($certContent)) {
-                $config['idp']['x509cert'] = $this->normalizeCertificate($certContent);
-                Log::debug('SAML: Loaded IDP certificate from SURF_PUBLIC_CERT environment variable');
-            } elseif (!empty(config('saml.surf.public_cert_path'))) {
+            if (! empty(config('saml.surf.public_cert_path'))) {
                 // Then try file path
                 $originalPath = config('saml.surf.public_cert_path');
                 $certPath = $originalPath;
@@ -206,13 +233,58 @@ class SamlController extends Controller
     /**
      * Redirect to SAML login with an error flag (avoids SURF redirect loops on ACS failure).
      */
-    protected function redirectToAuthFailed(string $guard, string $returnUrl): RedirectResponse
+    protected function redirectToAuthFailed(string $guard, string $returnUrl, ?string $error = null, array $extra = []): RedirectResponse
     {
+        $diagnostics = array_merge([
+            'ref' => strtoupper(bin2hex(random_bytes(4))),
+            'at' => now()->utc()->format('Y-m-d H:i:s') . ' UTC',
+            'stage' => 'acs',
+            'guard' => $guard,
+            'return' => $returnUrl,
+            'error' => $error,
+            'acs_url' => config('saml.sp.acs_url'),
+            'entity_id' => config('saml.sp.entity_id'),
+            'app_url' => config('app.url'),
+        ], $extra);
+
+        session(['saml_last_diagnostics' => $diagnostics]);
+        session()->save();
+
+        $this->reportSamlFailure($diagnostics);
+
         return redirect()->route('saml.login', [
             'guard' => $guard,
             'return' => $returnUrl,
             'auth_failed' => 1,
         ]);
+    }
+
+    /**
+     * Report SAML authentication failures to Flare with structured context for debugging.
+     */
+    protected function reportSamlFailure(array $diagnostics): void
+    {
+        Log::error('SAML authentication failed', $diagnostics);
+
+        if (empty(config('flare.key'))) {
+            return;
+        }
+
+        try {
+            $message = $diagnostics['error'] ?? 'SAML authentication failed';
+            $ref = $diagnostics['ref'] ?? 'unknown';
+
+            Flare::report(
+                new SamlAuthenticationException("[{$ref}] {$message}"),
+                fn ($report) => $report->context('saml', $diagnostics),
+                handled: true,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Could not report SAML failure to Flare', [
+                'ref' => $diagnostics['ref'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -263,10 +335,13 @@ class SamlController extends Controller
         $returnUrl = $request->get('return', '/');
 
         if ($request->boolean('auth_failed')) {
-            return response(
-                'Authentication failed. Please try again or contact support if the problem persists.',
-                403
-            );
+            return response()->view('saml.auth-failed', [
+                'retryUrl' => route('saml.login', [
+                    'guard' => $guard,
+                    'return' => $returnUrl,
+                ]),
+                'diagnostics' => session('saml_last_diagnostics', []),
+            ], 403);
         }
 
         // Already logged in locally – skip IdP to prevent SURF redirect loops
@@ -303,10 +378,8 @@ class SamlController extends Controller
             Log::error('SAML login error: ' . $e->getMessage());
             Log::error('SAML login error trace: ' . $e->getTraceAsString());
 
-            return redirect()->route('saml.login', [
-                'guard' => $guard,
-                'return' => $returnUrl,
-                'auth_failed' => 1,
+            return $this->redirectToAuthFailed($guard, $returnUrl, $e->getMessage(), [
+                'stage' => 'login',
             ]);
         }
     }
@@ -332,17 +405,17 @@ class SamlController extends Controller
             $returnUrl = session('saml_return_url', '/');
             Log::info('SAML ACS: Using guard and return URL from session (RelayState missing or invalid)', ['guard' => $guard, 'returnUrl' => $returnUrl, 'relayStatePresent' => $relayStateRaw !== null]);
         }
-        $requestId = session('saml_request_id');
+        $requestId = null;
+        // Do not pass session request ID: the ACS POST from SURF is cross-site and often
+        // arrives without the login session cookie, or with a stale ID from a prior attempt.
 
         try {
             $samlAuth = $this->getSamlAuth($guard);
 
-            if (config('saml.settings.strict', false) || env('SAML_DEBUG', false)) {
-                Log::debug('SAML ACS: Request ID from session: ' . ($requestId ?? 'none'));
+            if (config('saml.settings.debug', false)) {
+                Log::debug('SAML ACS: Request ID from session (not used): ' . (session('saml_request_id') ?? 'none'));
                 if ($request->has('SAMLResponse')) {
                     Log::debug('SAML ACS: SAMLResponse POST parameter present');
-                    $responsePreview = substr($request->input('SAMLResponse'), 0, 500);
-                    Log::debug('SAML ACS: Response preview: ' . $responsePreview . '...');
                 }
             }
 
@@ -422,11 +495,13 @@ class SamlController extends Controller
                     }
                 }
                 
-                return $this->redirectToAuthFailed($guard, $returnUrl);
+                return $this->redirectToAuthFailed($guard, $returnUrl, $errorReason ?: implode(', ', $errors), [
+                    'codes' => $errors,
+                ]);
             }
 
             if (!$samlAuth->isAuthenticated()) {
-                return $this->redirectToAuthFailed($guard, $returnUrl);
+                return $this->redirectToAuthFailed($guard, $returnUrl, 'SAML response was not authenticated.');
             }
 
             // Extract attributes
@@ -447,7 +522,7 @@ class SamlController extends Controller
             if (empty($persistentId)) {
                 Log::error('SAML: No persistent ID found in response');
 
-                return $this->redirectToAuthFailed($guard, $returnUrl);
+                return $this->redirectToAuthFailed($guard, $returnUrl, 'Missing user identifier in SAML response.');
             }
 
             // Link mode: connect SURF identity to the already-logged-in user (no email needed)
@@ -481,7 +556,7 @@ class SamlController extends Controller
         } catch (\Exception $e) {
             Log::error('SAML ACS error: ' . $e->getMessage());
 
-            return $this->redirectToAuthFailed($guard ?? 'students', $returnUrl ?? '/');
+            return $this->redirectToAuthFailed($guard ?? 'students', $returnUrl ?? '/', $e->getMessage());
         }
     }
 

@@ -212,6 +212,12 @@ Projects can be tagged with multiple tags from three categories:
 - **Theme**: Light mode only
 - **Typography**: Inter font family
 
+## 🏗️ Infrastructure & Services
+
+- **Hosting**: Provided via [https://linux2.webhosting.tue.nl/](https://linux2.webhosting.tue.nl/)
+- **Flare** (error monitoring): Managed by V&Zn VOF
+- **OpenAI** (AI features): Managed via V&Zn VOF
+
 ## 📄 License
 
 This project is open-sourced software licensed under the [MIT license](LICENSE).
