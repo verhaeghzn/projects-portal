@@ -42,7 +42,7 @@ function createSection(array $attributes = []): Section
  */
 function createGroup(array $attributes = []): Group
 {
-    if (!isset($attributes['section_id'])) {
+    if (! isset($attributes['section_id'])) {
         $section = createSection();
         $attributes['section_id'] = $section->id;
     }
@@ -66,19 +66,27 @@ function createProject(array $attributes = []): Project
     // Ensure we have a supervisor (required for project validation)
     $supervisor = createSupervisor();
     $group = $supervisor->group ?? createGroup();
-    if (!$supervisor->group_id) {
+    if (! $supervisor->group_id) {
         $supervisor->update(['group_id' => $group->id]);
     }
 
     // Set default owner if not provided
-    if (!isset($attributes['project_owner_id'])) {
+    if (! isset($attributes['project_owner_id'])) {
         $attributes['project_owner_id'] = $supervisor->id;
     }
 
+    if (! isset($attributes['organization_id'])) {
+        $organization = Organization::firstOrCreate(
+            ['name' => 'Test University'],
+            ['url' => 'https://example.test']
+        );
+        $attributes['organization_id'] = $organization->id;
+    }
+
     $project = Project::factory()->create($attributes);
-    
+
     // Create supervisor link if not already set
-    if (!isset($attributes['supervisorLinks'])) {
+    if (! isset($attributes['supervisorLinks'])) {
         ProjectSupervisor::create([
             'project_id' => $project->id,
             'supervisor_type' => User::class,
@@ -122,4 +130,3 @@ function seedTestData(): void
         ['name' => 'Master Thesis Project']
     );
 }
-

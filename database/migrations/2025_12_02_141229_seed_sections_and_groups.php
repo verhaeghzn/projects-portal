@@ -16,55 +16,55 @@ return new class extends Migration
         $ppSection = Section::firstOrCreate(['name' => 'Processing and Performance']);
         $msSection = Section::firstOrCreate(['name' => 'Microsystems']);
 
-        // Mechanics of Materials Groups
-        Group::firstOrCreate([
-            'name' => 'Group Geers',
-            'section_id' => $momSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Peerlings',
-            'section_id' => $momSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Remmers',
-            'section_id' => $momSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Rokos',
-            'section_id' => $momSection->id,
-        ]);
+        // Groups are created before `abbrev_id` exists; skip model `saving` hooks that touch it.
+        Group::withoutEvents(function () use ($momSection, $ppSection, $msSection) {
+            Group::firstOrCreate([
+                'name' => 'Group Geers',
+                'section_id' => $momSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Peerlings',
+                'section_id' => $momSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Remmers',
+                'section_id' => $momSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Rokos',
+                'section_id' => $momSection->id,
+            ]);
 
-        // Processing and Performance Groups
-        Group::firstOrCreate([
-            'name' => 'Group Anderson',
-            'section_id' => $ppSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Alicke',
-            'section_id' => $ppSection->id,
-        ]);
+            Group::firstOrCreate([
+                'name' => 'Group Anderson',
+                'section_id' => $ppSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Alicke',
+                'section_id' => $ppSection->id,
+            ]);
 
-        // Microsystems Groups
-        Group::firstOrCreate([
-            'name' => 'Group Den Toonder',
-            'section_id' => $msSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Luttge',
-            'section_id' => $msSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Wyss',
-            'section_id' => $msSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Group Wang',
-            'section_id' => $msSection->id,
-        ]);
-        Group::firstOrCreate([
-            'name' => 'Neuromorphic Engineering',
-            'section_id' => $msSection->id,
-        ]);
+            Group::firstOrCreate([
+                'name' => 'Group Den Toonder',
+                'section_id' => $msSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Luttge',
+                'section_id' => $msSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Wyss',
+                'section_id' => $msSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Group Wang',
+                'section_id' => $msSection->id,
+            ]);
+            Group::firstOrCreate([
+                'name' => 'Neuromorphic Engineering',
+                'section_id' => $msSection->id,
+            ]);
+        });
     }
 
     /**

@@ -33,6 +33,7 @@ class Project extends Model
 
     protected $casts = [
         'is_published' => 'boolean',
+        'search_summary_generated_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -43,6 +44,22 @@ class Project extends Model
             // Automatically set the creator if not already set and user is authenticated
             if (is_null($project->created_by_id) && Auth::check()) {
                 $project->created_by_id = Auth::id();
+            }
+        });
+
+        static::saving(function (Project $project) {
+            if ($project->isDirty(['name', 'short_description', 'richtext_content'])) {
+                $project->search_summary = null;
+                $project->search_summary_generated_at = null;
+            }
+        });
+
+        static::updated(function (Project $project) {
+            if ($project->wasChanged(['name', 'short_description', 'richtext_content'])) {
+                Project::withoutEvents(fn () => Project::whereKey($project->id)->update([
+                    'search_summary' => null,
+                    'search_summary_generated_at' => null,
+                ]));
             }
         });
 
