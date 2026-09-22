@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Auth\Guards\StudentsGuard;
 use App\Auth\Providers\StudentsProvider;
+use App\Listeners\ActivateUserOnWebLogin;
 use App\Listeners\ConnectPendingSurfId;
 use App\Models\Division;
 use Illuminate\Auth\Events\Login;
@@ -34,18 +35,21 @@ class AppServiceProvider extends ServiceProvider
         Auth::extend('students', function (Application $app, string $name, array $config) {
             $session = $app['session.store'];
             $provider = new StudentsProvider($session);
+
             return new StudentsGuard($provider, $session);
         });
 
         // Register custom students provider
         Auth::provider('students', function (Application $app, array $config) {
             $session = $app['session.store'];
+
             return new StudentsProvider($session);
         });
 
         // Link a pending SURF identity (stored after a failed admin SSO) once the
         // user authenticates with email + password, so SSO works next time.
         Event::listen(Login::class, ConnectPendingSurfId::class);
+        Event::listen(Login::class, ActivateUserOnWebLogin::class);
 
         LogViewer::auth(function ($request) {
             return Auth::check() && Auth::user()->hasRole('Administrator');

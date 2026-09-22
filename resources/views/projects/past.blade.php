@@ -2,6 +2,10 @@
 
 @section('title', 'Past Projects')
 
+@push('head')
+    <link rel="alternate" type="application/rss+xml" title="Past Projects RSS Feed" href="{{ route('projects.past.feed') }}">
+@endpush
+
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
     <div class="mb-6 sm:mb-8">

@@ -2,7 +2,10 @@
 
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\User;
+use App\Notifications\UserInvited;
 use Illuminate\Support\Facades\Notification;
+
+use function Pest\Livewire\livewire;
 
 beforeEach(function () {
     seedTestData();
@@ -42,6 +45,28 @@ test('can create user', function () {
         ->assertHasNoFormErrors();
 
     expect(User::where('email', 'newuser@example.com')->exists())->toBeTrue();
+});
+
+test('invite user persists selected group', function () {
+    Notification::fake();
+
+    $group = createGroup();
+
+    livewire(ListUsers::class)
+        ->callAction('invite', [
+            'name' => 'Invited User',
+            'email' => 'invited@example.com',
+            'group_id' => $group->id,
+            'roles' => ['Researcher'],
+        ]);
+
+    $invited = User::where('email', 'invited@example.com')->first();
+
+    expect($invited)->not->toBeNull()
+        ->and($invited->group_id)->toBe($group->id)
+        ->and($invited->invitation_token)->not->toBeNull();
+
+    Notification::assertSentTo($invited, UserInvited::class);
 });
 
 test('invite user warns about a similar account and waits for confirmation', function () {

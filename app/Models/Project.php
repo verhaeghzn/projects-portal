@@ -183,6 +183,16 @@ class Project extends Model
     }
 
     /**
+     * Taken projects that are published and visible to guests.
+     */
+    public function scopePublicPast($query)
+    {
+        return $query->past()
+            ->where('is_published', true)
+            ->public();
+    }
+
+    /**
      * Generate a unique project number based on year, section, and group.
      * Format: YY + Section abbrev_id + Group abbrev_id + 5-digit number
      * Example: 25MOMREM0035

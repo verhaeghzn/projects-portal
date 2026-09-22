@@ -75,16 +75,16 @@ class GroupMembers extends Page implements HasTable
 
                 TextColumn::make('email_verified_at')
                     ->label('Status')
-                    ->formatStateUsing(fn ($state, User $record): string => $record->invitation_token !== null && $record->email_verified_at === null
+                    ->formatStateUsing(fn ($state, User $record): string => $record->isPendingActivation()
                             ? 'Pending Activation'
                             : ($state ? 'Activated' : 'Inactive')
                     )
-                    ->description(fn ($state, User $record): ?string => $record->invitation_token !== null && $record->email_verified_at === null && $record->invitation_sent_at
+                    ->description(fn ($state, User $record): ?string => $record->isPendingActivation() && $record->invitation_sent_at
                             ? 'Invite sent at '.$record->invitation_sent_at->format('M j, Y g:i A')
                             : null
                     )
                     ->badge()
-                    ->color(fn ($state, User $record): string => $record->invitation_token !== null && $record->email_verified_at === null
+                    ->color(fn ($state, User $record): string => $record->isPendingActivation()
                             ? 'warning'
                             : ($state ? 'success' : 'gray')
                     )
@@ -103,7 +103,7 @@ class GroupMembers extends Page implements HasTable
                     ->label('Resend Invite')
                     ->icon('heroicon-o-envelope')
                     ->color('warning')
-                    ->visible(fn (User $record): bool => $record->invitation_token !== null && $record->email_verified_at === null)
+                    ->visible(fn (User $record): bool => $record->isPendingActivation())
                     ->requiresConfirmation()
                     ->modalHeading('Resend Invitation')
                     ->modalDescription('Are you sure you want to resend the invitation email? A new invitation link will be generated.')

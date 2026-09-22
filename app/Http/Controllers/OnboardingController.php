@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,7 @@ class OnboardingController extends Controller
             ->map(function ($group) {
                 return [
                     'id' => $group->id,
-                    'name' => $group->name . ' (' . $group->section->name . ')',
+                    'name' => $group->name.' ('.$group->section->name.')',
                 ];
             });
 
@@ -53,18 +54,18 @@ class OnboardingController extends Controller
 
         $validated = $request->validate([
             'password' => ['required', 'confirmed', Password::defaults()],
-            'group_id' => ['exists:groups,id', Rule::requiredIf(!$user->group_id)],
+            'group_id' => ['exists:groups,id', Rule::requiredIf(! $user->group_id)],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ]);
 
         // Update password
         $user->password = Hash::make($validated['password']);
-        
+
         // Update group
         if (isset($validated['group_id']) && $validated['group_id']) {
             $user->group_id = $validated['group_id'];
         }
-        
+
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
             if ($user->avatar_url) {
@@ -72,13 +73,17 @@ class OnboardingController extends Controller
             }
             $user->avatar_url = $request->file('avatar')->store('avatars', 'public');
         }
-        
-        // Mark email as verified and clear invitation token
-        $user->email_verified_at = now();
-        $user->invitation_token = null;
-        $user->invitation_sent_at = null;
+
+        $user->activateAccount();
         $user->save();
 
-        return redirect()->route('home')->with('success', 'Your account has been set up successfully! You can now log in.');
+        Auth::login($user);
+        $request->session()->regenerate();
+        $request->session()->put(
+            'password_hash_'.Auth::getDefaultDriver(),
+            $user->getAuthPassword()
+        );
+
+        return redirect()->route('onboarding.welcome');
     }
 }

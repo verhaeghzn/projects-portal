@@ -9,7 +9,6 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use STS\FilamentImpersonate\Actions\Impersonate;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -18,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UsersTable
 {
@@ -60,19 +60,16 @@ class UsersTable
 
                 TextColumn::make('email_verified_at')
                     ->label('Status')
-                    ->formatStateUsing(fn ($state, User $record): string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null
+                    ->formatStateUsing(fn ($state, User $record): string => $record->isPendingActivation()
                             ? 'Pending Activation'
                             : ($state ? 'Activated' : 'Inactive')
                     )
-                    ->description(fn ($state, User $record): ?string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null && $record->invitation_sent_at
-                            ? 'Invite sent at ' . $record->invitation_sent_at->format('M j, Y g:i A')
+                    ->description(fn ($state, User $record): ?string => $record->isPendingActivation() && $record->invitation_sent_at
+                            ? 'Invite sent at '.$record->invitation_sent_at->format('M j, Y g:i A')
                             : null
                     )
                     ->badge()
-                    ->color(fn ($state, User $record): string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null
+                    ->color(fn ($state, User $record): string => $record->isPendingActivation()
                             ? 'warning'
                             : ($state ? 'success' : 'gray')
                     )
@@ -97,6 +94,7 @@ class UsersTable
                         if (blank($divisionId)) {
                             return $query;
                         }
+
                         return $query->whereHas('group', function (Builder $q) use ($divisionId): void {
                             $q->whereHas('section', function (Builder $q2) use ($divisionId): void {
                                 $q2->where('division_id', $divisionId);
@@ -122,6 +120,7 @@ class UsersTable
                             return $query;
                         }
                         $since = now()->subDays((int) $days);
+
                         return $query
                             ->whereNotNull('invitation_token')
                             ->whereNull('email_verified_at')
@@ -135,7 +134,7 @@ class UsersTable
                     ->label('Resend Invite')
                     ->icon('heroicon-o-envelope')
                     ->color('warning')
-                    ->visible(fn (User $record): bool => $record->invitation_token !== null && $record->email_verified_at === null)
+                    ->visible(fn (User $record): bool => $record->isPendingActivation())
                     ->requiresConfirmation()
                     ->modalHeading('Resend Invitation')
                     ->modalDescription('Are you sure you want to resend the invitation email? A new invitation link will be generated.')
@@ -143,19 +142,19 @@ class UsersTable
                     ->action(function (User $record) {
                         // Generate new invitation token
                         $invitationToken = Str::random(64);
-                        
+
                         // Update user with new token and timestamp
                         $record->invitation_token = $invitationToken;
                         $record->invitation_sent_at = now();
                         $record->save();
-                        
+
                         // Send invitation notification
                         $record->notify(new UserInvited($invitationToken));
-                        
+
                         Notification::make()
                             ->title('Invitation Resent')
                             ->success()
-                            ->body('A new invitation email has been sent to ' . $record->email)
+                            ->body('A new invitation email has been sent to '.$record->email)
                             ->send();
                     }),
             ])

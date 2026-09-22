@@ -4,9 +4,11 @@ use App\Helpers\SamlHelper;
 use App\Http\Controllers\Auth\SamlController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\OnboardingWelcomeController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectExportController;
+use App\Http\Controllers\PublicPastProjectsRssFeedController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +28,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/projects/past', [ProjectController::class, 'past'])->name('projects.past');
+Route::get('/projects/past/feed.rss', PublicPastProjectsRssFeedController::class)->name('projects.past.feed');
 
 // Auth-gated routes - require SAML auth only if SAML login is required.
 $middleware = SamlHelper::isLoginRequired() ? [\App\Http\Middleware\RedirectToSamlLogin::class] : [];
@@ -64,5 +67,6 @@ Route::get('/admin/divisions/{division}/projects/export', ProjectExportControlle
     ->middleware(['web', 'auth'])
     ->name('admin.divisions.projects.export');
 
+Route::get('/onboarding/welcome', [OnboardingWelcomeController::class, 'show'])->name('onboarding.welcome');
 Route::get('/onboarding/{token}', [OnboardingController::class, 'show'])->name('onboarding.show');
 Route::post('/onboarding/{token}', [OnboardingController::class, 'store'])->name('onboarding.store');

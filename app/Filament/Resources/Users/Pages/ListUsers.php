@@ -80,6 +80,7 @@ class ListUsers extends ListRecords
                         'name' => $data['name'],
                         'email' => $data['email'],
                         'password' => Hash::make(Str::random(32)), // Temporary password
+                        'group_id' => $data['group_id'],
                         'invitation_token' => $invitationToken,
                         'invitation_sent_at' => now(),
                     ]);

@@ -93,16 +93,21 @@
                         <label for="group_id" class="block text-sm font-medium text-tue-black mb-2">
                             Select Your Group <span class="text-primary">*</span>
                         </label>
+                        @if($user->group_id)
+                            <input type="hidden" name="group_id" value="{{ $user->group_id }}">
+                        @endif
                         <select id="group_id"
-                                name="group_id"
-                                required
+                                @unless($user->group_id)
+                                    name="group_id"
+                                    required
+                                @endunless
                                 @if($user->group_id)
                                     disabled
                                 @endif
-                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm input-tue sm:text-sm @if($user->group_id) bg-gray-100 @enderror @error('group_id') border-red-500 @enderror">
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm input-tue sm:text-sm @if($user->group_id) bg-gray-100 @endif @error('group_id') border-red-500 @enderror">
                             <option value="">-- Please select a group --</option>
                             @foreach($groups as $group)
-                                <option value="{{ $group['id'] }}" {{ old('group_id', $user->group_id) == $group['id'] ? 'selected' : '' }}>
+                                <option value="{{ $group['id'] }}" @selected(old('group_id', $user->group_id) == $group['id'])>
                                     {{ $group['name'] }}
                                 </option>
                             @endforeach

@@ -26,7 +26,7 @@ class SamlController extends Controller
      */
     protected function ensureSamlEnabled(): void
     {
-        if (!SamlHelper::isEnabled()) {
+        if (! SamlHelper::isEnabled()) {
             abort(503, 'SAML authentication is not configured. Please set the required environment variables.');
         }
     }
@@ -75,25 +75,25 @@ class SamlController extends Controller
                 'idp_cert_source' => SurfIdpCertificateLoader::lastSource(),
             ]);
             throw new \RuntimeException(
-                'SURF Conext signing certificate could not be loaded. ' .
-                'Run: php artisan saml:install --refresh-surf ' .
-                'or ensure the server can reach ' . config('saml.surf.metadata_url')
+                'SURF Conext signing certificate could not be loaded. '.
+                'Run: php artisan saml:install --refresh-surf '.
+                'or ensure the server can reach '.config('saml.surf.metadata_url')
             );
         }
 
         if (! empty($settings['idp']['x509cert'])) {
-            Log::debug('SAML IDP certificate loaded (' . strlen($settings['idp']['x509cert']) . ' chars)');
+            Log::debug('SAML IDP certificate loaded ('.strlen($settings['idp']['x509cert']).' chars)');
         }
-        
+
         try {
             return new SamlAuth($settings);
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'cert') || str_contains($e->getMessage(), 'fingerprint')) {
-                Log::error('SAML configuration error: ' . $e->getMessage());
+                Log::error('SAML configuration error: '.$e->getMessage());
 
                 throw new \RuntimeException(
-                    'SAML configuration error: IDP certificate issue. ' .
-                    'Run: php artisan saml:install --refresh-surf. Error: ' . $e->getMessage()
+                    'SAML configuration error: IDP certificate issue. '.
+                    'Run: php artisan saml:install --refresh-surf. Error: '.$e->getMessage()
                 );
             }
 
@@ -164,7 +164,7 @@ class SamlController extends Controller
 
         if (! $hasIdpCert) {
             throw new \RuntimeException(
-                'SURF Conext signing certificate could not be loaded. ' .
+                'SURF Conext signing certificate could not be loaded. '.
                 'Run: php artisan saml:install --refresh-surf'
             );
         }
@@ -177,10 +177,10 @@ class SamlController extends Controller
         $config = config('saml.settings');
 
         // Load certificates from files if paths are provided
-        if (empty($config['sp']['x509cert']) && !empty(config('saml.sp.public_cert_path'))) {
+        if (empty($config['sp']['x509cert']) && ! empty(config('saml.sp.public_cert_path'))) {
             $certPath = config('saml.sp.public_cert_path');
             // Handle both absolute and relative paths
-            if (!file_exists($certPath) && !str_starts_with($certPath, '/')) {
+            if (! file_exists($certPath) && ! str_starts_with($certPath, '/')) {
                 $certPath = base_path($certPath);
             }
             if (file_exists($certPath)) {
@@ -190,10 +190,10 @@ class SamlController extends Controller
             }
         }
 
-        if (empty($config['sp']['privateKey']) && !empty(config('saml.sp.private_key_path'))) {
+        if (empty($config['sp']['privateKey']) && ! empty(config('saml.sp.private_key_path'))) {
             $keyPath = config('saml.sp.private_key_path');
             // Handle both absolute and relative paths
-            if (!file_exists($keyPath) && !str_starts_with($keyPath, '/')) {
+            if (! file_exists($keyPath) && ! str_starts_with($keyPath, '/')) {
                 $keyPath = base_path($keyPath);
             }
             if (file_exists($keyPath)) {
@@ -236,6 +236,7 @@ class SamlController extends Controller
         if ($linkToken !== null && $linkToken !== '') {
             $payload['link_token'] = $linkToken;
         }
+
         return base64_encode(json_encode($payload));
     }
 
@@ -255,6 +256,7 @@ class SamlController extends Controller
                 'link_token' => isset($decoded['link_token']) ? (string) $decoded['link_token'] : null,
             ];
         }
+
         return null;
     }
 
@@ -265,7 +267,7 @@ class SamlController extends Controller
     {
         $diagnostics = array_merge([
             'ref' => strtoupper(bin2hex(random_bytes(4))),
-            'at' => now()->utc()->format('Y-m-d H:i:s') . ' UTC',
+            'at' => now()->utc()->format('Y-m-d H:i:s').' UTC',
             'stage' => 'acs',
             'guard' => $guard,
             'return' => $returnUrl,
@@ -445,12 +447,12 @@ class SamlController extends Controller
     {
         $this->ensureSamlEnabled();
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return $this->redirectToAdminLoginWithError('You must be logged in to link your SURF Conext account.');
         }
 
         $token = bin2hex(random_bytes(32));
-        Cache::put('saml_link:' . $token, Auth::id(), 600); // 10 minutes
+        Cache::put('saml_link:'.$token, Auth::id(), 600); // 10 minutes
 
         $returnUrl = $request->get('return', '/admin');
 
@@ -505,15 +507,15 @@ class SamlController extends Controller
             $requestId = $samlAuth->getLastRequestID();
             if ($requestId) {
                 session(['saml_request_id' => $requestId]);
-                Log::debug('SAML login initiated with request ID: ' . $requestId);
+                Log::debug('SAML login initiated with request ID: '.$requestId);
             }
 
             session()->save();
 
             return redirect()->away($idpUrl);
         } catch (\Exception $e) {
-            Log::error('SAML login error: ' . $e->getMessage());
-            Log::error('SAML login error trace: ' . $e->getTraceAsString());
+            Log::error('SAML login error: '.$e->getMessage());
+            Log::error('SAML login error trace: '.$e->getTraceAsString());
 
             return $this->redirectToAuthFailed($guard, $returnUrl, $e->getMessage(), array_merge([
                 'stage' => 'login',
@@ -567,7 +569,7 @@ class SamlController extends Controller
             $samlAuth = $this->getSamlAuthForAcs($request, $guard);
 
             if (config('saml.settings.debug', false)) {
-                Log::debug('SAML ACS: Request ID from session (not used): ' . (session('saml_request_id') ?? 'none'));
+                Log::debug('SAML ACS: Request ID from session (not used): '.(session('saml_request_id') ?? 'none'));
                 if ($request->has('SAMLResponse')) {
                     Log::debug('SAML ACS: SAMLResponse POST parameter present');
                 }
@@ -577,7 +579,7 @@ class SamlController extends Controller
 
             $errors = $samlAuth->getErrors();
 
-            if (!empty($errors)) {
+            if (! empty($errors)) {
                 $errorReason = $samlAuth->getLastErrorReason();
                 $errorException = $samlAuth->getLastErrorException();
 
@@ -590,7 +592,7 @@ class SamlController extends Controller
                 ]));
             }
 
-            if (!$samlAuth->isAuthenticated()) {
+            if (! $samlAuth->isAuthenticated()) {
                 return $this->redirectToAuthFailed($guard, $returnUrl, 'SAML response was not authenticated.', $this->buildAcsFailureDiagnostics($request, $samlAuth));
             }
 
@@ -600,8 +602,8 @@ class SamlController extends Controller
 
             // Log which attributes we received (helps debug missing email from SURF)
             if (config('saml.settings.strict', false) || env('SAML_DEBUG', false)) {
-                Log::debug('SAML ACS: Raw attributes received: ' . json_encode(array_keys($attributes)));
-                Log::debug('SAML ACS: NameID: ' . $nameId);
+                Log::debug('SAML ACS: Raw attributes received: '.json_encode(array_keys($attributes)));
+                Log::debug('SAML ACS: NameID: '.$nameId);
             }
 
             // Map attributes
@@ -617,19 +619,21 @@ class SamlController extends Controller
 
             // Link mode: connect SURF identity to the already-logged-in user (no email needed)
             if ($guard === 'web' && $linkToken !== null && $linkToken !== '') {
-                $userId = Cache::get('saml_link:' . $linkToken);
+                $userId = Cache::get('saml_link:'.$linkToken);
                 if ($userId === null) {
-                    Log::warning('SAML Link: Token not found or expired', ['token_preview' => substr($linkToken, 0, 8) . '...']);
+                    Log::warning('SAML Link: Token not found or expired', ['token_preview' => substr($linkToken, 0, 8).'...']);
+
                     return $this->redirectToAdminLoginWithError('Link session expired. Please try again from the admin panel.');
                 }
                 $user = User::find($userId);
-                if (!$user instanceof User) {
-                    Cache::forget('saml_link:' . $linkToken);
+                if (! $user instanceof User) {
+                    Cache::forget('saml_link:'.$linkToken);
+
                     return $this->redirectToAdminLoginWithError('User no longer found. Please log in again.');
                 }
                 $user->surf_id = $persistentId;
                 $user->save();
-                Cache::forget('saml_link:' . $linkToken);
+                Cache::forget('saml_link:'.$linkToken);
                 Auth::guard('web')->login($user);
                 session()->forget(['saml_return_url', 'saml_guard', 'saml_request_id']);
                 Log::info('SAML Link: Connected SURF identity to user', ['user_id' => $user->id]);
@@ -677,22 +681,22 @@ class SamlController extends Controller
     {
         $user = null;
 
-        if (!empty($email)) {
-            $user = User::where('email', $email)->first();
+        if (! empty($email)) {
+            $user = User::findByEmailForSaml($email);
         }
 
         // No email or no match: try existing link by surf_id (returning user)
-        if (!$user) {
+        if (! $user) {
             $user = User::where('surf_id', $persistentId)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             $warning = 'Is your sign-in using Single-Sign-On (SSO) unsuccessful? Please sign in once using email and password. We\'ll prepare your SSO sign-in for future use. Thanks for understanding.';
 
             if (empty($email)) {
                 Log::warning('SAML Admin: No email in response and no user linked to this SURF identity.');
             } else {
-                Log::warning('SAML Admin: User not found with email: ' . $email);
+                Log::warning('SAML Admin: User not found with email: '.$email);
             }
 
             // Remember the SURF identity so we can link it to the account once the
@@ -704,12 +708,14 @@ class SamlController extends Controller
 
         // Check if user has access to admin panel
         $panel = \Filament\Facades\Filament::getPanel('admin');
-        if ($panel && !$user->canAccessPanel($panel)) {
+        if ($panel && ! $user->canAccessPanel($panel)) {
             return $this->redirectToAdminLoginWithError('You do not have access to the admin panel.');
         }
 
-        // Save persistent ID on every login so SURF and local user stay connected (first time and updates)
+        // Save persistent ID on every login so SURF and local user stay connected (first time and updates).
+        // SSO also activates pending invited users: SURF has already verified their identity.
         $user->surf_id = $persistentId;
+        $user->activateAccount();
         $user->save();
 
         // Authenticate user
@@ -727,7 +733,7 @@ class SamlController extends Controller
     public function logout(Request $request)
     {
         $this->ensureSamlEnabled();
-        
+
         $guard = $request->get('guard', Auth::getDefaultDriver());
 
         try {
@@ -746,7 +752,7 @@ class SamlController extends Controller
             $returnTo = $request->get('return', url('/'));
             $samlAuth->logout($returnTo);
         } catch (\Exception $e) {
-            Log::error('SAML logout error: ' . $e->getMessage());
+            Log::error('SAML logout error: '.$e->getMessage());
 
             // Fallback to local logout
             if ($guard === 'students') {
@@ -767,15 +773,15 @@ class SamlController extends Controller
     public function sls(Request $request)
     {
         $this->ensureSamlEnabled();
-        
+
         try {
             $samlAuth = $this->getSamlAuth();
             $samlAuth->processSLO();
 
             $errors = $samlAuth->getErrors();
 
-            if (!empty($errors)) {
-                Log::error('SAML SLS errors: ' . implode(', ', $errors));
+            if (! empty($errors)) {
+                Log::error('SAML SLS errors: '.implode(', ', $errors));
             }
 
             // Logout from local session
@@ -786,7 +792,7 @@ class SamlController extends Controller
 
             return redirect('/');
         } catch (\Exception $e) {
-            Log::error('SAML SLS error: ' . $e->getMessage());
+            Log::error('SAML SLS error: '.$e->getMessage());
 
             // Fallback logout
             Auth::guard('students')->logout();
@@ -804,37 +810,41 @@ class SamlController extends Controller
     public function metadata()
     {
         $this->ensureSamlEnabled();
-        
+
         try {
             $samlSettings = $this->getSamlSettings();
-            
+
             // Validate required settings
             if (empty($samlSettings['sp']['entityId'])) {
                 Log::error('SAML metadata: SP entityId is missing');
+
                 return response('SP Entity ID is not configured', 500);
             }
-            
+
             if (empty($samlSettings['sp']['x509cert']) && empty($samlSettings['sp']['privateKey'])) {
                 Log::error('SAML metadata: SP certificates are missing');
+
                 return response('SP certificates are not configured. Run: php artisan saml:install', 500);
             }
-            
+
             $settings = new Settings($samlSettings, true);
             $metadata = $settings->getSPMetadata();
             $errors = $settings->validateMetadata($metadata);
 
-            if (!empty($errors)) {
-                Log::error('SAML metadata validation errors: ' . implode(', ', $errors));
-                return response('Metadata validation failed: ' . implode(', ', $errors), 500);
+            if (! empty($errors)) {
+                Log::error('SAML metadata validation errors: '.implode(', ', $errors));
+
+                return response('Metadata validation failed: '.implode(', ', $errors), 500);
             }
 
             return response($metadata, 200, [
                 'Content-Type' => 'application/xml',
             ]);
         } catch (\Exception $e) {
-            Log::error('SAML metadata error: ' . $e->getMessage());
-            Log::error('SAML metadata stack trace: ' . $e->getTraceAsString());
-            return response('Metadata generation failed: ' . $e->getMessage(), 500);
+            Log::error('SAML metadata error: '.$e->getMessage());
+            Log::error('SAML metadata stack trace: '.$e->getTraceAsString());
+
+            return response('Metadata generation failed: '.$e->getMessage(), 500);
         }
     }
 
@@ -846,7 +856,7 @@ class SamlController extends Controller
     protected function normalizeCertificate(string $cert): string
     {
         $cert = trim($cert);
-        
+
         // If it's already in PEM format, keep it as-is (library will handle it)
         // If it's base64 without headers, that's also fine
         // Just ensure it's clean
@@ -864,7 +874,7 @@ class SamlController extends Controller
             if (isset($attributes[$attributeName])) {
                 $value = $attributes[$attributeName];
                 // SAML attributes can be arrays, get first value
-                if (is_array($value) && !empty($value)) {
+                if (is_array($value) && ! empty($value)) {
                     return $value[0];
                 }
                 if (is_string($value)) {

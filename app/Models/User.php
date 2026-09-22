@@ -19,7 +19,7 @@ use Spatie\Sluggable\SlugOptions;
 class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasSlug;
+    use HasFactory, HasRoles, HasSlug, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -98,6 +98,23 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         return $this->hasAnyRole(['Administrator', 'Staff member - supervisor', 'Researcher', 'Support colleague']);
     }
 
+    public function isPendingActivation(): bool
+    {
+        return $this->email_verified_at === null && $this->invitation_token !== null;
+    }
+
+    public function activateAccount(): self
+    {
+        if ($this->email_verified_at === null) {
+            $this->email_verified_at = now();
+        }
+
+        $this->invitation_token = null;
+        $this->invitation_sent_at = null;
+
+        return $this;
+    }
+
     /**
      * Only administrators may impersonate other users.
      */
@@ -112,10 +129,14 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     }
 
     /**
-     * Find user by email for SAML authentication
+     * Find user by email for SAML authentication.
+     * Matching is case-insensitive because SURF Conext may return a different casing
+     * than the address used when the user was invited.
      */
     public static function findByEmailForSaml(string $email): ?self
     {
-        return static::where('email', $email)->first();
+        return static::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+            ->first();
     }
 }
