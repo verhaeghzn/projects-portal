@@ -3,9 +3,12 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Filament\Users\InviteDuplicateWarning;
 use App\Models\Group;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\UserInvited;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\CheckboxList;
@@ -15,7 +18,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use App\Models\Role;
 
 class ListUsers extends ListRecords
 {
@@ -29,16 +31,22 @@ class ListUsers extends ListRecords
                 ->color('success')
                 ->icon('heroicon-o-envelope')
                 ->form([
+                    InviteDuplicateWarning::notice(),
+                    InviteDuplicateWarning::confirmation(),
                     TextInput::make('name')
                         ->label('Name')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->live(debounce: 500),
                     TextInput::make('email')
                         ->label('Email Address')
                         ->email()
                         ->required()
                         ->maxLength(255)
-                        ->unique('users', 'email'),
+                        ->live(debounce: 500)
+                        ->rules([
+                            fn (): Closure => InviteDuplicateWarning::emailAlreadyRegistered(),
+                        ]),
                     Select::make('group_id')
                         ->label('Group')
                         ->options(Group::all()->pluck('name', 'id'))
@@ -56,6 +64,16 @@ class ListUsers extends ListRecords
 
                 ])
                 ->action(function (array $data) {
+                    if ($message = InviteDuplicateWarning::blockReason($data)) {
+                        Notification::make()
+                            ->title('Check before inviting')
+                            ->warning()
+                            ->body($message)
+                            ->send();
+
+                        return;
+                    }
+
                     $invitationToken = Str::random(64);
 
                     $user = User::create([
@@ -67,7 +85,7 @@ class ListUsers extends ListRecords
                     ]);
 
                     // Assign selected roles
-                    if (!empty($data['roles'])) {
+                    if (! empty($data['roles'])) {
                         $roles = Role::whereIn('name', $data['roles'])->get();
                         $user->assignRole($roles);
                     }
@@ -77,7 +95,7 @@ class ListUsers extends ListRecords
                     Notification::make()
                         ->title('User Invited')
                         ->success()
-                        ->body('An invitation email has been sent to ' . $data['email'])
+                        ->body('An invitation email has been sent to '.$data['email'])
                         ->send();
                 }),
             CreateAction::make(),

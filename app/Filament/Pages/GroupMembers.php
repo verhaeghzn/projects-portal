@@ -2,10 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Users\InviteDuplicateWarning;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\UserInvited;
 use BackedEnum;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
@@ -36,9 +38,10 @@ class GroupMembers extends Page implements HasTable
 
     protected string $view = 'filament.pages.group-members';
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         $group = auth()->user()?->group;
+
         return $group ? $group->name : 'Group Members';
     }
 
@@ -72,19 +75,16 @@ class GroupMembers extends Page implements HasTable
 
                 TextColumn::make('email_verified_at')
                     ->label('Status')
-                    ->formatStateUsing(fn ($state, User $record): string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null
+                    ->formatStateUsing(fn ($state, User $record): string => $record->invitation_token !== null && $record->email_verified_at === null
                             ? 'Pending Activation'
                             : ($state ? 'Activated' : 'Inactive')
                     )
-                    ->description(fn ($state, User $record): ?string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null && $record->invitation_sent_at
-                            ? 'Invite sent at ' . $record->invitation_sent_at->format('M j, Y g:i A')
+                    ->description(fn ($state, User $record): ?string => $record->invitation_token !== null && $record->email_verified_at === null && $record->invitation_sent_at
+                            ? 'Invite sent at '.$record->invitation_sent_at->format('M j, Y g:i A')
                             : null
                     )
                     ->badge()
-                    ->color(fn ($state, User $record): string =>
-                        $record->invitation_token !== null && $record->email_verified_at === null
+                    ->color(fn ($state, User $record): string => $record->invitation_token !== null && $record->email_verified_at === null
                             ? 'warning'
                             : ($state ? 'success' : 'gray')
                     )
@@ -111,19 +111,19 @@ class GroupMembers extends Page implements HasTable
                     ->action(function (User $record) {
                         // Generate new invitation token
                         $invitationToken = Str::random(64);
-                        
+
                         // Update user with new token and timestamp
                         $record->invitation_token = $invitationToken;
                         $record->invitation_sent_at = now();
                         $record->save();
-                        
+
                         // Send invitation notification
                         $record->notify(new UserInvited($invitationToken));
-                        
+
                         Notification::make()
                             ->title('Invitation Resent')
                             ->success()
-                            ->body('A new invitation email has been sent to ' . $record->email)
+                            ->body('A new invitation email has been sent to '.$record->email)
                             ->send();
                     }),
             ]);
@@ -132,9 +132,9 @@ class GroupMembers extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         $user = auth()->user();
-        
+
         // Only show invite button for staff members and administrators
-        if (!$user || !$user->hasAnyRole(['Administrator', 'Staff member - supervisor'])) {
+        if (! $user || ! $user->hasAnyRole(['Administrator', 'Staff member - supervisor'])) {
             return [];
         }
 
@@ -144,18 +144,21 @@ class GroupMembers extends Page implements HasTable
                 ->color('success')
                 ->icon('heroicon-o-envelope')
                 ->form([
+                    InviteDuplicateWarning::notice(),
+                    InviteDuplicateWarning::confirmation(),
                     TextInput::make('name')
                         ->label('Name')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->live(debounce: 500),
                     TextInput::make('email')
                         ->label('Email Address')
                         ->email()
                         ->required()
                         ->maxLength(255)
-                        ->unique('users', 'email')
-                        ->validationMessages([
-                            'unique' => 'This email address is already registered.',
+                        ->live(debounce: 500)
+                        ->rules([
+                            fn (): Closure => InviteDuplicateWarning::emailAlreadyRegistered(),
                         ]),
                     Radio::make('role')
                         ->label('Role')
@@ -167,13 +170,13 @@ class GroupMembers extends Page implements HasTable
                         ->required(),
                 ])
                 ->action(function (array $data) use ($user) {
-                    // Check if email already exists
-                    if (User::where('email', $data['email'])->exists()) {
+                    if ($message = InviteDuplicateWarning::blockReason($data)) {
                         Notification::make()
-                            ->title('Error')
-                            ->danger()
-                            ->body('This email address is already registered.')
+                            ->title('Check before inviting')
+                            ->warning()
+                            ->body($message)
                             ->send();
+
                         return;
                     }
 
@@ -200,7 +203,7 @@ class GroupMembers extends Page implements HasTable
                     Notification::make()
                         ->title('User Invited')
                         ->success()
-                        ->body('An invitation email has been sent to ' . $data['email'])
+                        ->body('An invitation email has been sent to '.$data['email'])
                         ->send();
                 }),
         ];
@@ -209,7 +212,7 @@ class GroupMembers extends Page implements HasTable
     public static function canAccess(): bool
     {
         $user = auth()->user();
+
         return $user && $user->group_id !== null;
     }
 }
-
