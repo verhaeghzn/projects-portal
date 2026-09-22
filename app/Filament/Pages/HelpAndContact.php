@@ -2,11 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use App\Onboarding\WelcomeGuide;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
-use UnitEnum;
 
 class HelpAndContact extends Page
 {
@@ -26,6 +26,19 @@ class HelpAndContact extends Page
     public function getTitle(): string | Htmlable
     {
         return 'Help & Contact';
-    } 
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
+    {
+        $user = auth()->user();
+        $user?->loadMissing('group.section.division');
+
+        return [
+            'guide' => $user ? WelcomeGuide::for($user) : null,
+        ];
+    }
 }
 

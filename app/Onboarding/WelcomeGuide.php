@@ -93,7 +93,7 @@ class WelcomeGuide
         return [
             'title' => 'Bookmark the admin panel',
             'body' => [
-                'Do this before anything else. The address below is the staff entrance. Bookmark it so you can open your workspace in one click, without going through the public student site.',
+                'The address below is the staff entrance. Bookmark it so you can open the admin panel in one click, without going through the public student site.',
                 'On a Mac, open the link and press Cmd+D. On Windows, press Ctrl+D. You can also copy the address and save it in your browser bookmarks.',
             ],
             'image' => null,
@@ -106,7 +106,7 @@ class WelcomeGuide
     private function workspaceFeature(): array
     {
         $items = [
-            'After this page you will land in the admin panel — that is your workspace. The dashboard shows how many projects are available and lists recent activity.',
+            'The dashboard is your workspace. It shows how many projects are available and lists recent activity.',
             'Use the menu on the left for Projects, Organizations, and Help & Contact. Your name in the top-right opens your profile, where you can change your photo or password.',
         ];
 
@@ -181,7 +181,7 @@ class WelcomeGuide
         return [
             'title' => 'Invite people to your group',
             'body' => [
-                'Group Members shows everyone in your group. Use Invite new user to add a researcher or staff colleague — they receive an email and complete the same registration you just finished.',
+                'Group Members shows everyone in your group. Use Invite new user to add a researcher or staff colleague — they receive an email and set up their account.',
                 'Invited colleagues are attached to your group automatically, so their projects stay with the right section.',
             ],
             'image' => 'assets/images/onboarding/group-members.png',

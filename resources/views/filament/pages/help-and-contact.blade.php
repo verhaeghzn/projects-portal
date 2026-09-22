@@ -21,6 +21,30 @@
             </div>
         </x-filament::section>
 
+        @if($guide)
+            <x-filament::section class="mb-5">
+                <x-slot name="heading">
+                    Using the admin panel
+                </x-slot>
+                <x-slot name="description">
+                    How to publish projects and keep them up to date
+                </x-slot>
+                <div class="prose max-w-none prose-a:underline">
+                    @foreach($guide->features() as $feature)
+                        <h3 class="text-base font-semibold">{{ $feature['title'] }}</h3>
+                        @foreach($feature['body'] as $paragraph)
+                            <p>{{ $paragraph }}</p>
+                        @endforeach
+                        @if(! empty($feature['url']))
+                            <p>
+                                <a href="{{ $feature['url'] }}">{{ $feature['url'] }}</a>
+                            </p>
+                        @endif
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
+
         <x-filament::section class="mb-3"> 
             <x-slot name="heading">
                 About the Portal
